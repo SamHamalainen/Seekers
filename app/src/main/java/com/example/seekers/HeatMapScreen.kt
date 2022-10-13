@@ -1167,7 +1167,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun setLobbyFinished(gameId: String) {
-        val map = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
+        val map = mapOf(
+            Pair("status", LobbyStatus.FINISHED.ordinal),
+            Pair("endGameTime", Timestamp.now())
+        )
         firestore.updateLobby(map, gameId)
     }
 

@@ -168,6 +168,7 @@ class Lobby(
     val radius: Int = 0,
     val status: Int = 0,
     val startTime: Timestamp = Timestamp.now(),
+    val endGameTime: Timestamp = Timestamp.now(),
     val countdown: Int = 0
 ) : Serializable
 

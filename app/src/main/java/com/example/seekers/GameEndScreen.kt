@@ -126,22 +126,23 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
     fun getTimeAsSeeker(gameId: String, playerId: String) {
         FirebaseHelper.getLobby(gameId).get().addOnSuccessListener { documentSnapshot ->
             val lobby = documentSnapshot.toObject<Lobby>()!!
-            val endTime = lobby.startTime.toDate().time.div(1000).toInt() + lobby.countdown + lobby.timeLimit.times(60)
+            val startTime = (lobby.startTime.toDate().time.div(1000)).div(60).toInt()
+            val endTime = (lobby.endGameTime.toDate().time.div(1000)).div(60).toInt()
             Log.d("EndGame", "end time: $endTime")
             FirebaseHelper.getPlayer(gameId, playerId).get().addOnSuccessListener {
                 val player = it.toObject(Player::class.java)!!
                 val eliminationTime = player.timeOfElimination.toDate().time
                 val refTimestamp = Timestamp(1L, 1).toDate().time
-                val seekerTime = (endTime - eliminationTime.div(1000)).div(60).toInt()
+                val seekerTime = endTime.minus(startTime)
                 Log.d("EndGame", "elim time: $eliminationTime")
                 Log.d("EndGame", "ref time: $refTimestamp")
                 Log.d("EndGame", "seeker time: $seekerTime")
                 if (eliminationTime < refTimestamp) {
-                    timeAsSeeker.value = 0
+                    timeSurvived.value = 0
                 } else {
-                    timeAsSeeker.value = seekerTime
+                    timeSurvived.value = seekerTime
                 }
-                timeSurvived.value = lobby.timeLimit.minus(seekerTime)
+                timeAsSeeker.value = lobby.timeLimit.minus(seekerTime)
             }
         }
     }
