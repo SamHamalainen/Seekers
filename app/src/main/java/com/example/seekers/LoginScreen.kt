@@ -64,8 +64,7 @@ fun LoginForm(
     Column(
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(30.dp).fillMaxHeight(),
+        modifier = Modifier.fillMaxHeight(),
     ) {
         Image(
                 painter = painterResource(R.drawable.seekers_ver3),

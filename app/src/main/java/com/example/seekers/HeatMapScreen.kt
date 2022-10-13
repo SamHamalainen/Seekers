@@ -190,7 +190,6 @@ fun HeatMapScreen(
 
                 LobbyStatus.FINISHED.ordinal -> {
                     vm.stopStepCounter()
-                    Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
                     navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                 }
             }
@@ -538,8 +537,6 @@ fun HeatMapScreen(
                                             vm.hasNewNews.value = false
                                         }, hasNew = hasNewNews)
                                     }
-
-
                                 }
                             }
 
@@ -632,11 +629,13 @@ fun HeatMapScreen(
                                     gameId
                                 )
                             }
-
                             BackHandler(enabled = true) {
-                                showLeaveGameDialog = true
+                                if (drawerState.isOpen) {
+                                    scope.launch { drawerState.close() }
+                                } else {
+                                    showLeaveGameDialog = true
+                                }
                             }
-
                         } else {
                             Text(text = "Location permission needed")
                         }
@@ -904,7 +903,7 @@ fun GameTimer(vm: HeatMapViewModel) {
             Icon(Icons.Default.Alarm, contentDescription = "", tint = Raisin)
             Box(modifier = Modifier.width(90.dp), contentAlignment = Alignment.Center) {
                 val timeText = secondsToText(it)
-                if(timeText == "Time's up!")
+                if (timeText == "Time's up!")
                     Text(text = timeText, color = Raisin, fontSize = 16.sp)
                 else
                     Text(text = timeText, color = Raisin, fontSize = 20.sp)

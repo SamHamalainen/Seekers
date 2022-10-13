@@ -160,7 +160,7 @@ fun LobbyCreationScreen(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.create_lobby)
             ) {
-                if (maxPlayers != null && timeLimit != null && radius != null && countdown != null) {
+                if (maxPlayers!! >= 2 && timeLimit!! >= 10 && radius != null && countdown!! >= 30) {
                     if (center == null) {
                         Toast.makeText(
                             context,
@@ -193,6 +193,19 @@ fun LobbyCreationScreen(
                             mapOf(Pair("currentGameId", gameId))
                         )
                         navController.navigate(NavRoutes.LobbyQR.route + "/$gameId")
+                    }
+                } else {
+                    if (maxPlayers!! < 2) {
+                        vm.showMaxPlayersError.value = true
+                        vm.maxPlayersError.value = true
+                    }
+                    if (timeLimit!! < 10) {
+                        vm.showTimeLimitError.value = true
+                        vm.timeLimitError.value = true
+                    }
+                    if(countdown!! < 30) {
+                        vm.showCountDownError.value = true
+                        vm.countDownError.value = true
                     }
                 }
             }
@@ -237,24 +250,42 @@ fun CreationForm(modifier: Modifier = Modifier, vm: LobbyCreationScreenViewModel
     val maxPlayers by vm.maxPlayers.observeAsState()
     val timeLimit by vm.timeLimit.observeAsState()
     val countdown by vm.countdown.observeAsState()
+    val maxPlayersError by vm.maxPlayersError.observeAsState(false)
+    val showMaxPlayersError by vm.maxPlayersError.observeAsState(false)
+    val timeLimitError by vm.timeLimitError.observeAsState(false)
+    val showTimeLimitError by vm.timeLimitError.observeAsState(false)
+    val countDownError by vm.countDownError.observeAsState(false)
+    val showCountDownError by vm.countDownError.observeAsState(false)
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Input(
-            title = stringResource(id = R.string.max_players),
-            value = maxPlayers?.toString() ?: "",
-            keyboardType = KeyboardType.Number,
-            onChangeValue = { vm.updateMaxPlayers(it.toIntOrNull()) })
+        Column() {
+            Input(
+                title = stringResource(id = R.string.max_players),
+                value = maxPlayers?.toString() ?: "",
+                isError = maxPlayersError,
+                keyboardType = KeyboardType.Number,
+                onChangeValue = { vm.updateMaxPlayers(it.toIntOrNull()) })
+            if (showMaxPlayersError) ValidationErrorRow(text = "Minimum 2 players", modifier = Modifier.padding(top = 5.dp))
+        }
+        Column() {
+            Input(
+                title = stringResource(id = R.string.time_limit),
+                value = timeLimit?.toString() ?: "",
+                isError = timeLimitError,
+                keyboardType = KeyboardType.Number,
+                onChangeValue = { vm.updateTimeLimit(it.toIntOrNull()) })
+            if (showTimeLimitError) ValidationErrorRow(text = "Minimum 10 minutes", modifier = Modifier.padding(top = 5.dp))
+        }
+        Column() {
+            Input(
+                title = stringResource(id = R.string.countdown),
+                value = countdown?.toString() ?: "",
+                isError = countDownError,
+                keyboardType = KeyboardType.Number,
+                onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
+            if (showCountDownError) ValidationErrorRow(text = "Minimum 30 seconds", modifier = Modifier.padding(top = 5.dp))
+        }
 
-        Input(
-            title = stringResource(id = R.string.time_limit),
-            value = timeLimit?.toString() ?: "",
-            keyboardType = KeyboardType.Number,
-            onChangeValue = { vm.updateTimeLimit(it.toIntOrNull()) })
-        Input(
-            title = stringResource(id = R.string.countdown),
-            value = countdown?.toString() ?: "",
-            keyboardType = KeyboardType.Number,
-            onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
     }
 }
 
@@ -328,6 +359,14 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
             }
         }
     }
+
+    // Other
+    val maxPlayersError = MutableLiveData(false)
+    val timeLimitError = MutableLiveData(false)
+    val countDownError = MutableLiveData(false)
+    val showMaxPlayersError = MutableLiveData(false)
+    val showTimeLimitError = MutableLiveData(false)
+    val showCountDownError = MutableLiveData(false)
 
     // Map functions
 

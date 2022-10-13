@@ -295,7 +295,7 @@ fun EditRulesDialog(
                         Spacer(modifier = Modifier.height(20.dp))
                         Box(modifier = Modifier.padding(40.dp, 0.dp, 40.dp, 0.dp)) {
                             CustomButton(text = "Save") {
-                                if (maxPlayers != null && timeLimit != null && radius != null && countdown != null && center != null) {
+                                if (maxPlayers!! >= 2 && timeLimit!! >= 10 && radius != null && countdown!! >= 30 && center != null) {
                                     val centerGeoPoint =
                                         GeoPoint(center!!.latitude, center!!.longitude)
                                     val changeMap = mapOf(
@@ -310,22 +310,28 @@ fun EditRulesDialog(
                                         .show()
                                     onDismissRequest()
                                 } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Please fill all fields",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                                    if (maxPlayers!! < 2) {
+                                        vm.showMaxPlayersError.value = true
+                                        vm.maxPlayersError.value = true
+                                    }
+                                    if (timeLimit!! < 10) {
+                                        vm.showTimeLimitError.value = true
+                                        vm.timeLimitError.value = true
+                                    }
+                                    if (countdown!! < 30) {
+                                        vm.showCountDownError.value = true
+                                        vm.countDownError.value = true
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        ShowRules(vm = vm)
-                    }
-                }
+                } else {
+                ShowRules(vm = vm)
+            }
             }
         }
     }
+}
 }
 
 @Composable
@@ -350,6 +356,12 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
     val showMap by vm.showMap.observeAsState(false)
     val center by vm.center.observeAsState()
     val cameraState = rememberCameraPositionState()
+    val maxPlayersError by vm.maxPlayersError.observeAsState(false)
+    val showMaxPlayersError by vm.maxPlayersError.observeAsState(false)
+    val timeLimitError by vm.timeLimitError.observeAsState(false)
+    val showTimeLimitError by vm.timeLimitError.observeAsState(false)
+    val countDownError by vm.countDownError.observeAsState(false)
+    val showCountDownError by vm.countDownError.observeAsState(false)
 
     LaunchedEffect(center) {
         center?.let {
@@ -359,23 +371,42 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
 
     if (!showMap) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Input(
-                title = stringResource(id = R.string.max_players),
-                value = maxPlayers?.toString() ?: "",
-                keyboardType = KeyboardType.Number,
-                onChangeValue = { vm.updateMaxPlayers(it.toIntOrNull()) })
-
-            Input(
-                title = stringResource(id = R.string.time_limit),
-                value = timeLimit?.toString() ?: "",
-                keyboardType = KeyboardType.Number,
-                onChangeValue = { vm.updateTimeLimit(it.toIntOrNull()) })
-
-            Input(
-                title = stringResource(id = R.string.countdown),
-                value = countdown?.toString() ?: "",
-                keyboardType = KeyboardType.Number,
-                onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
+            Column() {
+                Input(
+                    title = stringResource(id = R.string.max_players),
+                    value = maxPlayers?.toString() ?: "",
+                    isError = maxPlayersError,
+                    keyboardType = KeyboardType.Number,
+                    onChangeValue = { vm.updateMaxPlayers(it.toIntOrNull()) })
+                if (showMaxPlayersError) ValidationErrorRow(
+                    text = "Minimum 2 players",
+                    modifier = Modifier.padding(top = 5.dp)
+                )
+            }
+            Column() {
+                Input(
+                    title = stringResource(id = R.string.time_limit),
+                    value = timeLimit?.toString() ?: "",
+                    isError = timeLimitError,
+                    keyboardType = KeyboardType.Number,
+                    onChangeValue = { vm.updateTimeLimit(it.toIntOrNull()) })
+                if (showTimeLimitError) ValidationErrorRow(
+                    text = "Minimum 10 minutes",
+                    modifier = Modifier.padding(top = 5.dp)
+                )
+            }
+            Column() {
+                Input(
+                    title = stringResource(id = R.string.countdown),
+                    value = countdown?.toString() ?: "",
+                    isError = countDownError,
+                    keyboardType = KeyboardType.Number,
+                    onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
+                if (showCountDownError) ValidationErrorRow(
+                    text = "Minimum 30 seconds",
+                    modifier = Modifier.padding(top = 5.dp)
+                )
+            }
 
             Card(
                 modifier = Modifier
@@ -401,7 +432,10 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
                             .align(Alignment.CenterStart)
                             .padding(16.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(text = "EDIT PLAY AREA", fontSize = 22.sp)
                             Box(
                                 modifier = Modifier
@@ -456,7 +490,13 @@ fun LeaveGameDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm() }) {
+            Button(
+                onClick = { onConfirm() },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = SizzlingRed,
+                    contentColor = Color.White
+                )
+            ) {
                 Text(text = "Leave")
             }
         }
@@ -475,7 +515,13 @@ fun DismissLobbyDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm() }) {
+            Button(
+                onClick = { onConfirm() },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = SizzlingRed,
+                    contentColor = Color.White
+                )
+            ) {
                 Text(text = "Dismiss")
             }
         }
@@ -589,7 +635,12 @@ fun PlayerCard(
                         .padding(10.dp)
                 )
             }
-            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.5).dp))
+            Text(
+                text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.width((screenWidth * 0.5).dp)
+            )
             if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.ordinal) {
                 Button(
                     onClick = {
@@ -617,75 +668,3 @@ fun PlayerCard(
         }
     }
 }
-
-//class LobbyViewModel() : ViewModel() {
-//    val TAG = "LobbyVM"
-//    val firestore = FirebaseHelper
-//    val players = MutableLiveData(listOf<Player>())
-//    val lobby = MutableLiveData<Lobby>()
-//    val isCreator = MutableLiveData<Boolean>()
-//    val playerId = firestore.uid
-//    val maxPlayers = MutableLiveData<Int>()
-//    val timeLimit = MutableLiveData<Int>()
-//    val radius = MutableLiveData<Int>()
-//    val countdown = MutableLiveData<Int>()
-//
-//    fun updateMaxPlayers(newVal: Int?) {
-//        maxPlayers.value = newVal
-//    }
-//
-//    fun updateTimeLimit(newVal: Int?) {
-//        timeLimit.value = newVal
-//    }
-//
-//    fun updateRadius(newVal: Int?) {
-//        radius.value = newVal
-//    }
-//
-//    fun updateCountdown(newVal: Int?) {
-//        countdown.value = newVal
-//    }
-//
-//    fun removePlayer(gameId: String, playerId: String) =
-//        firestore.removePlayer(gameId = gameId, playerId = playerId)
-//
-//    fun getPlayers(gameId: String) {
-//        firestore.getPlayers(gameId)
-//            .addSnapshotListener { list, e ->
-//                list ?: run {
-//                    Log.e(TAG, "getPlayers: ", e)
-//                    return@addSnapshotListener
-//                }
-//                val playerList = list.toObjects(Player::class.java)
-//                players.postValue(playerList)
-//            }
-//    }
-//
-//    fun getLobby(gameId: String) {
-//        firestore.getLobby(gameId).addSnapshotListener { data, e ->
-//            data?.let {
-//                lobby.postValue(it.toObject(Lobby::class.java))
-//            }
-//        }
-//    }
-//
-//    fun updateLobby(changeMap: Map<String, Any>, gameId: String) =
-//        firestore.updateLobby(changeMap, gameId)
-//
-//    fun getPlayer(gameId: String, playerId: String) {
-//        firestore.getPlayer(gameId, playerId).get()
-//            .addOnSuccessListener { data ->
-//                val player = data.toObject(Player::class.java)
-//                player?.let {
-//                    isCreator.postValue(it.inLobbyStatus == InLobbyStatus.CREATOR.value)
-//                }
-//            }
-//            .addOnFailureListener {
-//                Log.e(TAG, "getPlayer: ", it)
-//            }
-//    }
-//
-//    fun updateUser(userId: String, changeMap: Map<String, Any>) =
-//        firestore.updateUser(userId, changeMap)
-//
-//}

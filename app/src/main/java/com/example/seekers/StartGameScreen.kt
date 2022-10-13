@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -27,10 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.seekers.general.LogOutButton
-import com.example.seekers.ui.theme.Powder
-import com.example.seekers.ui.theme.Raisin
-import com.example.seekers.ui.theme.Emerald
-import com.example.seekers.ui.theme.Mango
+import com.example.seekers.ui.theme.*
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -134,7 +132,7 @@ fun StartGameScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((screenHeight*0.5).dp)
+                        .height((screenHeight * 0.5).dp)
                         .padding(horizontal = 15.dp, vertical = 5.dp)
                         .clickable { showTutorial = true },
                     elevation = 10.dp
@@ -206,7 +204,10 @@ fun LogOutDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm() }) {
+            Button(
+                onClick = { onConfirm() },
+                colors = ButtonDefaults.buttonColors(backgroundColor = SizzlingRed, contentColor = Color.White)
+            ) {
                 Text(text = "Log Out")
             }
         }
@@ -219,14 +220,19 @@ fun TutorialDialog(onDismiss: () -> Unit) {
     val screenHeight = LocalConfiguration.current.screenHeightDp * .9
     val screenWidth = LocalConfiguration.current.screenWidthDp * .9
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Powder)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Powder)) {
             Column(
                 Modifier
                     .background(Powder)
                     .fillMaxSize()) {
                 val pagerState = rememberPagerState()
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

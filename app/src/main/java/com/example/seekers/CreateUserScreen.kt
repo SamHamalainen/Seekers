@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -32,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.seekers.general.CustomButton
 import com.example.seekers.general.CustomOutlinedTextField
+import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.emailAvailable
 import com.google.firebase.auth.FirebaseAuth
 
@@ -77,7 +79,7 @@ fun CreateUserForm(
             .fillMaxSize(),
     ) {
         Text(text = "Create Account", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-        Text(text = "Create a new account", fontSize = 16.sp, color = Color.LightGray)
+        Text(text = "Create a new account", fontSize = 16.sp, color = Raisin)
         Spacer(modifier = Modifier.height(40.dp))
         CustomOutlinedTextField(
             value = email,
@@ -209,6 +211,7 @@ fun CreateUserForm(
 
 @Composable
 fun ValidationErrorRow(
+    modifier: Modifier = Modifier,
     text: String,
     fontWeight: FontWeight = FontWeight.Normal,
     fontSize: TextUnit = 12.sp
@@ -217,6 +220,7 @@ fun ValidationErrorRow(
         text = text,
         color = Color.Red,
         fontSize = fontSize,
-        fontWeight = fontWeight
+        fontWeight = fontWeight,
+        modifier = modifier
     )
 }
