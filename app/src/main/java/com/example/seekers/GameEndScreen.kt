@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -46,12 +45,11 @@ fun GameEndScreen(
             .padding(30.dp)
             .fillMaxSize(),
     ) {
-        Spacer(modifier = Modifier.height(30.dp))
-        Text(text = "Game over!", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(text = "Game over!", fontSize = 35.sp, fontWeight = FontWeight.Bold)
         Card() {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                 .padding(30.dp)) {
                 Text("STATISTICS", fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -68,7 +66,7 @@ fun GameEndScreen(
         CustomButton(text = "Start a new game") {
             navController.navigate(NavRoutes.StartGame.route)
         }
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(20.dp))
     }
 
 }
@@ -100,7 +98,6 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
 
     val steps = MutableLiveData(0)
     val distance = MutableLiveData(0.0F)
