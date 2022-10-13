@@ -119,7 +119,7 @@ fun LoginForm(
             )
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
             ) {
                 CustomButton(
                     onClick = {

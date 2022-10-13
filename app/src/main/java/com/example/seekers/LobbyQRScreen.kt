@@ -589,7 +589,7 @@ fun PlayerCard(
                         .padding(10.dp)
                 )
             }
-            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.2).dp))
+            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.5).dp))
             if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.ordinal) {
                 Button(
                     onClick = {
