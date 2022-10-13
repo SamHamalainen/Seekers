@@ -23,6 +23,7 @@ import androidx.lifecycle.Transformations
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.CustomButton
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ktx.toObject
 import java.math.RoundingMode
 
@@ -45,6 +46,7 @@ fun GameEndScreen(
     val timeSurvived by vm.timeSurvived.observeAsState()
     val players by vm.players.observeAsState()
     val playersFoundByMe by vm.playersFoundByMe.observeAsState()
+    val playersHidden by vm.playersHidden.observeAsState()
 
     Column(
         verticalArrangement = Arrangement.SpaceAround,
@@ -63,36 +65,17 @@ fun GameEndScreen(
             ) {
                 Text("STATISTICS", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(15.dp))
-                players?.let {
-                    val total =
-                        it.count { player ->
-                            player.inGameStatus != InGameStatus.LEFT.ordinal
-                        }
-                    val hidingAmount =
-                        it.count { player ->
-                            player.inGameStatus == InGameStatus.HIDING.ordinal
-                                    || player.inGameStatus == InGameStatus.MOVING.ordinal
-                        }
-                    val foundAmount = total.minus(hidingAmount)
-
-//                    statRow(
-//                        text = "Players found by me: $playersFoundByMe",
-//                        fontSize = 16.sp
-//                    )
-//                    statRow(
-//                        text = "Players hidden",
-//                        value = hidingAmount.toString()
-//                    )
-//                }
-//                statRow("Steps taken: $steps", fontSize = 16.sp)
-//                statRow("Distance walked: $distance meters", fontSize = 16.sp)
-//                statRow("Your time as seeker: $timeAsSeeker minutes", fontSize = 16.sp)
-//                if (timeSurvived != null) {
-//                    if (timeSurvived!! >= 0) {
-//                        statRow("Your time in hiding: $timeSurvived minutes", fontSize = 16.sp)
-//                    } else {
-//                        statRow("Your time in hiding: 0 minutes", fontSize = 16.sp)
-//                    }
+                StatRow(text = "Players found", value = playersFoundByMe.toString())
+                StatRow(text = "Players not found", value = playersHidden.toString())
+                StatRow("Steps taken", value = steps.toString())
+                StatRow("Distance walked", value = "$distance m")
+                StatRow("Your time as seeker", value = "$timeAsSeeker min")
+                if (timeSurvived != null) {
+                    if (timeSurvived!! >= 0) {
+                        StatRow("Your time in hiding", value = "$timeSurvived min")
+                    } else {
+                        StatRow("Your time in hiding", value = "0 min")
+                    }
                 }
             }
         }
@@ -108,10 +91,10 @@ fun GameEndScreen(
 }
 
 @Composable
-fun statRow(text: String, value: String) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.padding(5.dp)) {
+fun StatRow(text: String, value: String) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.padding(5.dp).fillMaxWidth()) {
         Text(text = text)
-        Box(modifier = Modifier.width(100.dp), contentAlignment = Alignment.CenterStart) {
+        Box(modifier = Modifier.width(100.dp), contentAlignment = Alignment.CenterEnd) {
             Text(text = value)
         }
     }
@@ -134,22 +117,31 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
             it.foundBy == FirebaseHelper.uid!!
         }
     }
+    val playersHidden = Transformations.map(players) { players ->
+        players.count {
+            it.inGameStatus == InGameStatus.HIDING.ordinal || it.inGameStatus == InGameStatus.MOVING.ordinal
+        }
+    }
 
     fun getTimeAsSeeker(gameId: String, playerId: String) {
         FirebaseHelper.getLobby(gameId).get().addOnSuccessListener { documentSnapshot ->
-            val lobby = documentSnapshot.toObject<Lobby>()
-            val endTime = lobby?.let { it1 ->
-                lobby.startTime.toDate().time.div(1000).toInt().plus(lobby.countdown).plus(
-                    it1.timeLimit * 60
-                )
-            }
+            val lobby = documentSnapshot.toObject<Lobby>()!!
+            val endTime = lobby.startTime.toDate().time.div(1000).toInt() + lobby.countdown + lobby.timeLimit.times(60)
+            Log.d("EndGame", "end time: $endTime")
             FirebaseHelper.getPlayer(gameId, playerId).get().addOnSuccessListener {
-                val player = it.toObject(Player::class.java)
-                val eliminationTime = player?.timeOfElimination?.toDate()?.time?.div(1000)?.toInt()
-                val seekerTime = eliminationTime?.let { it1 -> endTime?.minus(it1) }
-                timeAsSeeker.value = seekerTime?.div(60)
-                timeSurvived.value =
-                    seekerTime?.let { it1 -> lobby?.timeLimit?.times(60)?.minus(it1)?.div(60) }
+                val player = it.toObject(Player::class.java)!!
+                val eliminationTime = player.timeOfElimination.toDate().time
+                val refTimestamp = Timestamp(1L, 1).toDate().time
+                val seekerTime = (endTime - eliminationTime.div(1000)).div(60).toInt()
+                Log.d("EndGame", "elim time: $eliminationTime")
+                Log.d("EndGame", "ref time: $refTimestamp")
+                Log.d("EndGame", "seeker time: $seekerTime")
+                if (eliminationTime < refTimestamp) {
+                    timeAsSeeker.value = 0
+                } else {
+                    timeAsSeeker.value = seekerTime
+                }
+                timeSurvived.value = lobby.timeLimit.minus(seekerTime)
             }
         }
     }
