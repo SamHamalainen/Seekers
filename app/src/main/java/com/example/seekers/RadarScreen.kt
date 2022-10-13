@@ -233,7 +233,7 @@ class RadarViewModel() : ViewModel() {
         firestore.getPlayers(gameId)
             .get().addOnSuccessListener { list ->
                 val playerList = list.toObjects(Player::class.java)
-                val seekerScanning = playerList.find { it.inGameStatus == InGameStatus.SEEKER.value && it.playerId == FirebaseHelper.uid!! }
+                val seekerScanning = playerList.find { it.inGameStatus == InGameStatus.SEEKER.ordinal && it.playerId == FirebaseHelper.uid!! }
                 if (seekerScanning != null) {
                     filterPlayersList(playerList, seekerScanning)
                 }

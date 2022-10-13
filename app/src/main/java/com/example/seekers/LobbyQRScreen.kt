@@ -46,6 +46,7 @@ import com.example.seekers.general.generateQRCode
 import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.ui.theme.avatarBackground
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.MapProperties
@@ -342,7 +343,14 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
     val timeLimit by vm.timeLimit.observeAsState()
     val countdown by vm.countdown.observeAsState()
     val showMap by vm.showMap.observeAsState(false)
+    val center by vm.center.observeAsState()
     var cameraState = rememberCameraPositionState()
+
+    LaunchedEffect(center) {
+        center?.let {
+            cameraState.position = CameraPosition.fromLatLngZoom(it, 14f)
+        }
+    }
 
     if (!showMap) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

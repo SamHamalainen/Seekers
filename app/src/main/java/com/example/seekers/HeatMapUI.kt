@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
@@ -18,11 +19,13 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.seekers.general.AvatarIcon
+import com.example.seekers.ui.theme.Powder
 import java.util.*
 
 @Composable
@@ -70,7 +73,9 @@ fun PlayerList(players: List<Player>) {
 @Composable
 fun PlayerTile(player: Player) {
     Column(Modifier.fillMaxWidth()) {
-        Card(modifier = Modifier.fillMaxWidth().padding(16.dp), elevation = 4.dp) {
+        Card(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp), elevation = 4.dp) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -108,3 +113,31 @@ fun StatusPill(inGameStatus: Int) {
         )
     }
 }
+
+@Composable
+fun PowersDialog(onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(8.dp), backgroundColor = Powder) {
+
+        }
+    }
+}
+
+@Composable
+fun PowerButton(power: Power, onPress: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Card(shape = MaterialTheme.shapes.medium) {
+            Icon(painter = painterResource(id = power.icon), contentDescription = "power", modifier = Modifier.padding(16.dp))
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = power.text)
+    }
+}
+
+enum class Power(val icon: Int, val text: String, val duration: Int) {
+    INVISIBILITY(1, "Invisibility", 15),
+    JAMMER(2, "Jammer", 5),
+    DECOY(3, "Decoy", 15),
+    REVEAL(4, "Reveal seekers", 5)
+}
+

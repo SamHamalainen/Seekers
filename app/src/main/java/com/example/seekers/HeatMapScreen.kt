@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -103,6 +104,7 @@ fun HeatMapScreen(
     var selfie: Bitmap? by remember { mutableStateOf(null) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
+    var showPowers by remember { mutableStateOf(false) }
     var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
 
     val selfieLauncher =
@@ -300,23 +302,44 @@ fun HeatMapScreen(
                                 )
                             }
                         })
-                    IconButton(
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            showRadar = true
-                        },
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    Icons.Default.Radar,
-                                    contentDescription = "Radar",
-                                    tint = Raisin
-                                )
-                            }
-                        })
+                    if (isSeeker == true) {
+                        IconButton(
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                showRadar = true
+                            },
+                            content = {
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.Radar,
+                                        contentDescription = "Radar",
+                                        tint = Raisin
+                                    )
+                                }
+                            })
+                    } else {
+                        IconButton(
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                showPowers = true
+                            },
+                            content = {
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.magic_wand),
+                                        contentDescription = "Radar",
+                                        tint = Raisin
+                                    )
+                                }
+                            })
+                    }
+
                     IconButton(
                         onClick = {
                             scope.launch { drawerState.close() }

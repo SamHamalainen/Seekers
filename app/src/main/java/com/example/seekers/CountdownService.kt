@@ -12,6 +12,7 @@ import com.example.seekers.general.secondsToText
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class CountdownService: Service() {
@@ -41,7 +42,7 @@ class CountdownService: Service() {
         return null
     }
 
-    fun vibrate() {
+    fun vibrate(milliseconds: Long) {
         val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
                 getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -50,11 +51,11 @@ class CountdownService: Service() {
             @Suppress("DEPRECATION")
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
-        vib.vibrate(VibrationEffect.createOneShot(3000,1))
+        vib.vibrate(VibrationEffect.createOneShot(milliseconds,255))
     }
 
     fun getIsSeeker(gameId: String) {
-        firestore.getPlayerStatus(gameId, firestore.uid!!).get()
+        firestore.getPlayer(gameId, firestore.uid!!).get()
             .addOnSuccessListener {
                 val player = it.toObject(Player::class.java)
                 val isSeeker = player?.inGameStatus == InGameStatus.SEEKER.ordinal
@@ -87,22 +88,38 @@ class CountdownService: Service() {
                 if (p0 == 0L) {
                     updateMainNotification(0)
                     broadcastCountdown(0)
+                    if (isSeeker) {
+                        firestore.updateLobby(
+                            mapOf(Pair("status", LobbyStatus.ACTIVE.ordinal)),
+                            gameId
+                        )
+                    }
                     this.cancel()
                     return
                 }
                 val seconds = p0.div(1000).toInt()
-                if (seconds == 10) {
-                    mediaPlayerCountdown = mediaPlayerCountdown().apply {
-                        this.start()
-                    }
-                }
                 updateMainNotification(seconds)
                 broadcastCountdown(seconds)
+
+                if (isSeeker) {
+                    if (seconds == 10) {
+                        mediaPlayerCountdown = mediaPlayerCountdown().apply {
+                            this.start()
+                        }
+                    }
+                } else {
+                    if (seconds in 1..5) {
+                        vibrate(100)
+                    }
+                    if (seconds == 0) {
+                        vibrate(500)
+                    }
+                }
+
+
             }
             override fun onFinish() {
-                scope.launch {
-                    vibrate()
-                }
+                vibrate(500)
                 if (isSeeker) {
                     firestore.updateLobby(
                         mapOf(Pair("status", LobbyStatus.ACTIVE.ordinal)),
@@ -156,9 +173,13 @@ class CountdownService: Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        scope.launch {
+            delay(3000)
+            mediaPlayerCountdown?.stop()
+            mediaPlayerCountdown?.release()
+        }
         mediaPlayerHidingPhaseMusic?.stop()
         mediaPlayerHidingPhaseMusic?.release()
-        mediaPlayerCountdown?.stop()
-        mediaPlayerCountdown?.release()
+
     }
 }
