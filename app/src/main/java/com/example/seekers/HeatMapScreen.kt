@@ -184,7 +184,7 @@ fun HeatMapScreen(
     LaunchedEffect(currentSeekers) {
         currentSeekers?.let {
             val activePlayers = players?.count { it.inGameStatus != InGameStatus.LEFT.ordinal }
-            if (currentSeekers.size == activePlayers) {
+            if (currentSeekers.size == activePlayers && activePlayers > 1) {
                 vm.setLobbyFinished(gameId)
                 drawerState.close()
                 lobbyIsOver = true
@@ -199,8 +199,6 @@ fun HeatMapScreen(
                     vm.startStepCounter()
                 }
                 LobbyStatus.FINISHED.ordinal -> {
-                    vm.stopStepCounter()
-                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                     object: CountDownTimer(60*1000, 1000) {
                         override fun onTick(p0: Long) {
                             lobbyEndCountdown = p0.div(1000).toInt()
@@ -303,7 +301,7 @@ fun HeatMapScreen(
     }
 
     BottomDrawer(
-        gesturesEnabled = false,
+        gesturesEnabled = drawerState.isOpen,
         drawerState = drawerState,
         drawerContent = {
             Surface(
