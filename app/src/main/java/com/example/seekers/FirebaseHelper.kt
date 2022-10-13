@@ -196,10 +196,11 @@ enum class InLobbyStatus {
 
 enum class InGameStatus {
     SEEKER,
-    PLAYER,
+    HIDING,
     MOVING,
     ELIMINATED,
-    LEFT
+    LEFT,
+    INVISIBLE,
 }
 
 enum class PlayerDistance {

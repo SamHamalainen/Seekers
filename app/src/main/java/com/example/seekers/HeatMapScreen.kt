@@ -13,7 +13,6 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.Build
 import android.os.CountDownTimer
 import android.util.Log
 import android.util.Size
@@ -55,7 +54,6 @@ import com.example.seekers.general.*
 import com.example.seekers.general.QRCodeComponent
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.Emerald
-import com.example.seekers.ui.theme.Raisin
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.CameraPosition
@@ -504,7 +502,7 @@ fun HeatMapScreen(
                                             }
                                         val hidingAmount =
                                             it.count { player ->
-                                                player.inGameStatus == InGameStatus.PLAYER.ordinal
+                                                player.inGameStatus == InGameStatus.HIDING.ordinal
                                                         || player.inGameStatus == InGameStatus.MOVING.ordinal
                                             }
                                         Row(
@@ -922,7 +920,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         players.filter { it.playerId != FirebaseHelper.uid!! }
     }
     val heatPositions = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.PLAYER.ordinal }
+        players.filter { it.inGameStatus == InGameStatus.HIDING.ordinal }
             .map { LatLng(it.location.latitude, it.location.longitude) }
     }
     val movingPlayers = Transformations.map(playersWithoutSelf) { players ->
@@ -939,7 +937,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 1",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.22338389989929, 24.756749169655805),
                 playerId = "player 1",
                 distanceStatus = PlayerDistance.WITHIN50.ordinal
@@ -955,7 +953,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 3",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.223032239987354, 24.758830563735074),
                 playerId = "player 3",
                 distanceStatus = PlayerDistance.WITHIN10.ordinal
@@ -979,7 +977,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 6",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.223841983003645, 24.759626485065098),
                 playerId = "player 6",
                 distanceStatus = PlayerDistance.WITHIN50.ordinal
@@ -995,7 +993,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 8",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.22314399742664, 24.757781125478843),
                 playerId = "player 8",
                 distanceStatus = PlayerDistance.WITHIN10.ordinal

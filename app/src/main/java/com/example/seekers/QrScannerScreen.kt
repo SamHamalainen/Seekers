@@ -40,14 +40,14 @@ fun QrScannerScreen(
     LaunchedEffect(gameId) {
         gameId?.let {
             val firestore = FirebaseHelper
-            val player = Player(
+            val HIDING = Player(
                 nickname = nickname,
                 avatarId = avatarId,
                 playerId = FirebaseHelper.uid!!,
                 inLobbyStatus = InLobbyStatus.JOINED.ordinal,
-                inGameStatus = InGameStatus.PLAYER.ordinal
+                inGameStatus = InGameStatus.HIDING.ordinal
             )
-            firestore.addPlayer(player, it)
+            firestore.addPlayer(HIDING, it)
             firestore.updateUser(
                 FirebaseHelper.uid!!,
                 mapOf(Pair("currentGameId", it))
@@ -70,7 +70,7 @@ fun QrScannerScreen(
                     ).show()
                     navController.navigate(NavRoutes.StartGame.route)
                 } else {
-                    vm.firestore.addPlayer(player, it)
+                    vm.firestore.addPlayer(HIDING, it)
                     vm.firestore.updateUser(
                         FirebaseHelper.uid!!,
                         mapOf(Pair("currentGameId", it))
