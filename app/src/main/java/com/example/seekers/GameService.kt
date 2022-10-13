@@ -18,6 +18,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.toObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,8 @@ class GameService : Service() {
         }
     }
 
+    var newsListener: ListenerRegistration? = null
+    var lobbyListener: ListenerRegistration? = null
     private val firestore = FirebaseHelper
     var previousLoc: Location? = null
     var callback: LocationCallback? = null
@@ -285,8 +288,24 @@ class GameService : Service() {
         }
     }
 
-    fun listenForNews(gameId: String) {
-        FirebaseHelper.getNews(gameId)
+    private fun sendEndGameNotification(content: String) {
+        val notification = Notifications.createNotification(
+            context = applicationContext,
+            title = "Game Over",
+            content = content,
+            channelId = FOUND_NOTIFICATION,
+            priority = NotificationManager.IMPORTANCE_HIGH,
+            category = Notification.CATEGORY_EVENT,
+            pendingIntent = getPendingIntent(),
+            autoCancel = true
+        )
+        with(NotificationManagerCompat.from(applicationContext)) {
+            notify(FOUND_NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun listenForNews(gameId: String): ListenerRegistration {
+      return  FirebaseHelper.getNews(gameId)
             .addSnapshotListener { data, e ->
                 Log.d(TAG, "listenForNews: player found ${data?.size()}")
                 data ?: kotlin.run {
@@ -299,6 +318,22 @@ class GameService : Service() {
                     val latestNews = newsList[0]
                     sendNewsNotification(latestNews.text)
                     newsCount = newsList.size
+                }
+            }
+    }
+
+    private fun listenToLobby(gameId: String): ListenerRegistration {
+       return FirebaseHelper.getLobby(gameId)
+            .addSnapshotListener { data, e ->
+                data ?: kotlin.run {
+                    Log.e(TAG, "listenToLobby: ", e)
+                    return@addSnapshotListener
+                }
+                val lobby = data.toObject<Lobby>()
+                if (lobby?.status == LobbyStatus.FINISHED.ordinal) {
+                    val message = "The seekers have found the last player!\n" +
+                            "The game session will end in 15 seconds"
+                    sendEndGameNotification(message)
                 }
             }
     }
@@ -335,6 +370,7 @@ class GameService : Service() {
                 if (p0 == 0L) {
                     updateMainNotification(0)
                     broadcastCountdown(0)
+                    timeUp()
                     this.cancel()
                     return
                 }
@@ -343,10 +379,7 @@ class GameService : Service() {
                 broadcastCountdown(seconds)
             }
 
-            override fun onFinish() {
-                this.cancel()
-                endGame()
-            }
+            override fun onFinish() {}
         }
         timer?.start()
     }
@@ -368,7 +401,8 @@ class GameService : Service() {
         }
     }
 
-    fun endGame() {
+    fun timeUp() {
+        sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         currentGameId?.let { id ->
             firestore.getPlayers(gameId = id).get()
                 .addOnSuccessListener { data ->
@@ -390,9 +424,9 @@ class GameService : Service() {
         val gameId = intent?.getStringExtra("gameId")!!
         currentGameId = gameId
         val isSeeker = intent.getBooleanExtra("isSeeker", false)
-        scope.launch {
-            listenForNews(gameId)
-        }
+        newsListener = listenForNews(gameId)
+        lobbyListener = listenToLobby(gameId)
+
         Notifications.createNotificationChannel(
             context = applicationContext,
             SEEKER_NOTIFICATION,
@@ -403,10 +437,12 @@ class GameService : Service() {
             FOUND_NOTIFICATION,
             importanceLevel = NotificationManager.IMPORTANCE_HIGH
         )
-
         Notifications.createNotificationChannel(
-            context = applicationContext
+            context = applicationContext,
+            END_NOTIFICATION,
+            importanceLevel = NotificationManager.IMPORTANCE_HIGH
         )
+        Notifications.createNotificationChannel(context = applicationContext)
         val notification = buildMainNotification(null)
         startForeground(MAIN_NOTIFICATION_ID, notification)
         startTracking(gameId, isSeeker)
@@ -422,5 +458,9 @@ class GameService : Service() {
                 stopTimer()
             }
         }
+        timer?.cancel()
+        newsListener?.remove()
+        lobbyListener?.remove()
+        lobbyListener?.remove()
     }
 }
