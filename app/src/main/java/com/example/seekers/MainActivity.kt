@@ -224,6 +224,16 @@ fun MyAppNavHost(permissionVM: PermissionsViewModel = viewModel()) {
                 permissionVM = permissionVM
             )
         }
+        //Game end screen
+        composable(
+            NavRoutes.EndGame.route + "/{gameId}",
+            arguments = listOf(
+                navArgument("gameId") { type = NavType.StringType },
+            )
+        ) {
+            val gameId = it.arguments!!.getString("gameId")!!
+            GameEndScreen(navController = navController, gameId = gameId)
+        }
     }
     if (showPermissionDialog) {
         PermissionsDialog(onDismiss = { permissionVM.updateShowDialog(false) }, vm = permissionVM)
