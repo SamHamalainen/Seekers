@@ -30,6 +30,7 @@ import com.example.seekers.general.LogOutButton
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.Emerald
+import com.example.seekers.ui.theme.Mango
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -243,7 +244,7 @@ fun TutorialDialog(onDismiss: () -> Unit) {
                 HorizontalPager(
                     count = 5,
                     state = pagerState,
-                    // Add 32.dp horizontal padding to 'center' the pages
+                    // contentPadding to show previous/next pages slightly
                     contentPadding = PaddingValues(horizontal = 32.dp),
                     modifier = Modifier
                         .weight(1f)
@@ -279,25 +280,25 @@ internal fun PagerSampleItem(
     val screenHeight = LocalConfiguration.current.screenHeightDp
     if(page == 0) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Create a lobby to host your own game as the Seeker, and share the QR code for all your friends!", modifier = Modifier.padding(5.dp))
+            Text(text = "Create a lobby to host your own game as the Seeker, and share the QR code for all your friends!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial1),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center,
                 modifier = Modifier.height((screenHeight*0.5).dp),
             )
-            Text(text = "Or join a lobby of a friend with a QR code and get ready to hide!", modifier = Modifier.padding(5.dp))
+            Text(text = "Or join a lobby of a friend with a QR code and get ready to hide!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
 
         }
     } else if(page == 1) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Remember to pick a funny nickname so your friends can recognize you!", modifier = Modifier.padding(5.dp))
+            Text(text = "Remember to pick a funny nickname so your friends can recognize you!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial2_1),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center
             )
-            Text(text = "And most importantly, a cute avatar", modifier = Modifier.padding(5.dp))
+            Text(text = "And most importantly, a cute avatar", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial2_2),
                 contentDescription = "tutorial",
@@ -306,42 +307,42 @@ internal fun PagerSampleItem(
         }
     } else if(page == 2) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Set the rules for your game", modifier = Modifier.padding(5.dp))
+            Text(text = "Set the rules for your game", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial3),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center,
                 modifier = Modifier.height((screenHeight*0.5).dp),
                 )
-            Text(text = "And don't forget to define the play area before creating the lobby!", modifier = Modifier.padding(5.dp))
+            Text(text = "And don't forget to define the play area before creating the lobby!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
 
         }
     } else if(page == 3) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Setting the play area is simple", modifier = Modifier.padding(5.dp))
+            Text(text = "Setting the play area is simple", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial4),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center,
                 modifier = Modifier.height((screenHeight*0.5).dp),
                 )
-            Text(text = "Just move the camera to a favorable position, set the radius with the vertical slider and you're good to go!", modifier = Modifier.padding(5.dp))
+            Text(text = "Just move the camera to a favorable position, set the radius with the vertical slider and you're good to go!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
         }
     } else if(page == 4) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "While waiting for your friends, open up the QR code for them to scan from your phone", modifier = Modifier.padding(5.dp))
+            Text(text = "While waiting for your friends, open up the QR code for them to scan from your phone", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial5_1),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center
             )
-            Text(text = "In case you want to change the rules, here's the option to do that!", modifier = Modifier.padding(5.dp))
+            Text(text = "In case you want to change the rules, here's the option to do that!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
             Image(
                 painter = painterResource(id = R.drawable.tutorial5_3),
                 contentDescription = "tutorial",
                 alignment = Alignment.Center
             )
-            Text(text = "Now start the game and off you go, hide quickly!", modifier = Modifier.padding(5.dp))
+            Text(text = "Now start the game and off you go, hide quickly!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
         }
     }
 }

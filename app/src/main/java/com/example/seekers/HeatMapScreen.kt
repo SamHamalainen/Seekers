@@ -477,10 +477,11 @@ fun HeatMapScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(
-                                                Icons.Default.PermIdentity,
+                                                Icons.Default.PeopleAlt,
                                                 contentDescription = "",
                                                 tint = Raisin
                                             )
+                                            Spacer(Modifier.width(2.dp))
                                             Text(
                                                 text = "$hidingAmount/$total",
                                                 color = Raisin,
@@ -605,7 +606,7 @@ fun RadarDialog(
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = Powder,
             modifier = Modifier.height(height.dp)
         ) {
             RadarScreen(gameId = gameId)
@@ -651,12 +652,12 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
         Card(
             modifier = Modifier
                 .height((screenHeight * 0.8).dp)
-                .fillMaxWidth(), backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)
+                .fillMaxWidth(), backgroundColor = Powder, shape = RoundedCornerShape(8.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Events",
-                    style = MaterialTheme.typography.h6,
+                    text = "EVENTS",
+                    fontSize = 22.sp,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
                 LazyColumn(
@@ -689,7 +690,8 @@ fun NewsItem(news: News, gameId: String) {
     bitmap?.let {
         Card(
             shape = RoundedCornerShape(8.dp),
-            backgroundColor = Color.LightGray,
+            backgroundColor = Color.White,
+            elevation = 5.dp,
             modifier = Modifier.padding(16.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -842,7 +844,11 @@ fun GameTimer(vm: HeatMapViewModel) {
         ) {
             Icon(Icons.Default.Alarm, contentDescription = "", tint = Raisin)
             Box(modifier = Modifier.width(90.dp), contentAlignment = Alignment.Center) {
-                Text(text = secondsToText(it), color = Raisin, fontSize = 20.sp)
+                val timeText = secondsToText(it)
+                if(timeText == "Time's up!")
+                    Text(text = timeText, color = Raisin, fontSize = 16.sp)
+                else
+                    Text(text = timeText, color = Raisin, fontSize = 20.sp)
             }
         }
     }

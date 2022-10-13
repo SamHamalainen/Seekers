@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -73,10 +74,11 @@ fun PlayerList(players: List<Player>) {
 
 @Composable
 fun PlayerTile(player: Player) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
     Column(Modifier.fillMaxWidth()) {
         Card(modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp), elevation = 4.dp) {
+            .padding(4.dp), elevation = 4.dp) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -89,7 +91,7 @@ fun PlayerTile(player: Player) {
                         .padding(8.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(text = player.nickname)
+                Text(text = player.nickname, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.3).dp))
                 Spacer(modifier = Modifier.weight(1f))
                 StatusPill(inGameStatus = player.inGameStatus)
             }

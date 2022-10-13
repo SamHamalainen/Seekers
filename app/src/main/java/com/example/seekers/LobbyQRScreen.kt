@@ -28,12 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -540,6 +542,7 @@ fun PlayerCard(
     setKickableIndex: () -> Unit,
     isKickable: Boolean
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
 
     val avaratID = when (player.avatarId) {
         0 -> R.drawable.bee
@@ -586,7 +589,7 @@ fun PlayerCard(
                         .padding(10.dp)
                 )
             }
-            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}")
+            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.2).dp))
             if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.ordinal) {
                 Button(
                     onClick = {
