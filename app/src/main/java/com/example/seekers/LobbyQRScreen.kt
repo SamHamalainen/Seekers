@@ -216,7 +216,7 @@ fun LobbyQRScreen(
         }
         if (showLeaveDialog) {
             LeaveGameDialog(onDismissRequest = { showLeaveDialog = false }, onConfirm = {
-                vm.removePlayer(gameId, "")
+                vm.removePlayer(gameId, FirebaseHelper.uid!!)
                 vm.updateUser(
                     FirebaseHelper.uid!!,
                     mapOf(Pair("currentGameId", ""))
@@ -349,7 +349,7 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
     val countdown by vm.countdown.observeAsState()
     val showMap by vm.showMap.observeAsState(false)
     val center by vm.center.observeAsState()
-    var cameraState = rememberCameraPositionState()
+    val cameraState = rememberCameraPositionState()
 
     LaunchedEffect(center) {
         center?.let {

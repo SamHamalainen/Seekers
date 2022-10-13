@@ -21,6 +21,8 @@ fun HeatMap(
     properties: MapProperties,
     uiSettings: MapUiSettings,
     movingPlayers: List<Player>,
+    seekers: List<Player>,
+    canSeeSeeker: Boolean,
     tileProvider: HeatmapTileProvider?,
     circleCoords: List<LatLng>,
 ) {
@@ -54,6 +56,26 @@ fun HeatMap(
                 anchor = Offset(0.5f, 0.5f)
             )
         }
+        if (canSeeSeeker) {
+            seekers.forEach {
+                val res = avatarListWithBg[it.avatarId]
+                val bitmap = BitmapFactory.decodeResource(context.resources, res)
+                val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 50, 50, false)
+                Marker(
+                    state = MarkerState(
+                        position = LatLng(
+                            it.location.latitude,
+                            it.location.longitude
+                        )
+                    ),
+                    icon = BitmapDescriptorFactory.fromBitmap(resizedBitmap),
+                    title = it.nickname,
+                    visible = true,
+                    anchor = Offset(0.5f, 0.5f)
+                )
+            }
+        }
+
         if (center != null && radius != null) {
             if (circleCoords.isNotEmpty()) {
                 Polygon(

@@ -4,10 +4,15 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.CountDownTimer
 import android.util.Log
 import android.util.Size
@@ -42,6 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.*
@@ -62,6 +68,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -78,38 +85,51 @@ fun HeatMapScreen(
     permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
-    val radius by vm.radius.observeAsState()
-    val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
-    val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
-    var initialPosSet by remember { mutableStateOf(false) }
-    val lobby by vm.lobby.observeAsState()
-    val lobbyStatus by vm.lobbyStatus.observeAsState()
-    var timer: CountDownTimer? by remember { mutableStateOf(null) }
-//    val timeRemaining by vm.timeRemaining.observeAsState()
-    val center by vm.center.observeAsState()
-    val isSeeker by vm.isSeeker.observeAsState()
-    val playerStatus by vm.playerStatus.observeAsState()
-    val players by vm.players.observeAsState()
-    val heatPositions by vm.heatPositions.observeAsState(listOf())
+    // player
     val movingPlayers by vm.movingPlayers.observeAsState(listOf())
     val eliminatedPlayers by vm.eliminatedPlayers.observeAsState(listOf())
-    val news by vm.news.observeAsState()
-    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    val currentSeekers by vm.currentSeekers.observeAsState(listOf())
+    val players by vm.players.observeAsState()
+    var playerFound: Player? by remember { mutableStateOf(null) }
+    val canSeeSeeker by vm.canSeeSeeker.observeAsState(false)
+
+    // lobby
+    val lobby by vm.lobby.observeAsState()
+    val lobbyStatus by vm.lobbyStatus.observeAsState()
+
+    // map
+    val radius by vm.radius.observeAsState()
+    var initialPosSet by remember { mutableStateOf(false) }
+    val center by vm.center.observeAsState()
+    val heatPositions by vm.heatPositions.observeAsState(listOf())
     val cameraPositionState = rememberCameraPositionState()
     var minZoom by remember { mutableStateOf(17F) }
-    var showRadar by remember { mutableStateOf(false) }
+    var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
+
+    // dialogs
+    var showRadarDialog by remember { mutableStateOf(false) }
     var showLeaveGameDialog by remember { mutableStateOf(false) }
     var showQR by remember { mutableStateOf(false) }
     var showQRScanner by remember { mutableStateOf(false) }
     var showPlayerFound by remember { mutableStateOf(false) }
     var showPlayerList by remember { mutableStateOf(false) }
-    var playerFound: Player? by remember { mutableStateOf(null) }
-    var selfie: Bitmap? by remember { mutableStateOf(null) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
-    var showPowers by remember { mutableStateOf(false) }
-    var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
+    val showPowers by vm.showPowersDialog.observeAsState(false)
+    val showJammer by vm.showJammer.observeAsState(false)
 
+    // permissions
+    val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
+    val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
+
+    // Other
+    val isSeeker by vm.isSeeker.observeAsState()
+    val playerStatus by vm.playerStatus.observeAsState()
+    var timer: CountDownTimer? by remember { mutableStateOf(null) }
+//    val timeRemaining by vm.timeRemaining.observeAsState()
+    val news by vm.news.observeAsState()
+    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    var selfie: Bitmap? by remember { mutableStateOf(null) }
     val selfieLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) {
             it?.let {
@@ -164,14 +184,14 @@ fun HeatMapScreen(
     LaunchedEffect(lobbyStatus) {
         lobbyStatus?.let {
             when (it) {
+                LobbyStatus.ACTIVE.ordinal -> {
+                    vm.startStepCounter()
+                }
+
                 LobbyStatus.FINISHED.ordinal -> {
+                    vm.stopStepCounter()
                     Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
-                    /*
-                    * Steps
-                    * Time survived
-                    * Time as seeker
-                    * Number of players found by me
-                    * */
+                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                 }
             }
         }
@@ -192,13 +212,25 @@ fun HeatMapScreen(
                 }
                 return@LaunchedEffect
             }
-            if (it == InGameStatus.ELIMINATED.ordinal) {
-                showQR = false
-                vm.stopService(context)
-                vm.setPlayerInGameStatus(InGameStatus.SEEKER.ordinal, gameId, FirebaseHelper.uid!!)
-                vm.updateIsSeeker(true)
-                vm.startService(context = context, gameId = gameId, isSeeker = true)
-                Toast.makeText(context, "You are now a seeker!", Toast.LENGTH_SHORT).show()
+            when (it) {
+                InGameStatus.ELIMINATED.ordinal -> {
+                    showQR = false
+                    vm.stopService(context)
+                    vm.setPlayerInGameStatus(
+                        InGameStatus.SEEKER.ordinal,
+                        gameId,
+                        FirebaseHelper.uid!!
+                    )
+                    vm.updateIsSeeker(true)
+                    vm.startService(context = context, gameId = gameId, isSeeker = true)
+                    Toast.makeText(context, "You are now a seeker!", Toast.LENGTH_SHORT).show()
+                }
+                InGameStatus.JAMMED.ordinal -> {
+                    vm.updateShowJammer(true)
+                }
+                InGameStatus.SEEKER.ordinal -> {
+                    vm.updateShowJammer(false)
+                }
             }
         }
     }
@@ -309,7 +341,7 @@ fun HeatMapScreen(
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
-                                showRadar = true
+                                showRadarDialog = true
                             },
                             content = {
                                 Column(
@@ -327,7 +359,7 @@ fun HeatMapScreen(
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
-                                showPowers = true
+                                vm.updateShowPowersDialog(true)
                             },
                             content = {
                                 Column(
@@ -335,6 +367,7 @@ fun HeatMapScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
+                                        modifier = Modifier.size(24.dp),
                                         painter = painterResource(id = R.drawable.magic_wand),
                                         contentDescription = "Radar",
                                         tint = Raisin
@@ -424,7 +457,10 @@ fun HeatMapScreen(
 
                     FloatingActionButton(
                         elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                        modifier = Modifier.border(BorderStroke(1.dp, Raisin), shape = CircleShape),
+                        modifier = Modifier.border(
+                            BorderStroke(1.dp, Raisin),
+                            shape = CircleShape
+                        ),
                         shape = CircleShape,
                         backgroundColor = Emerald,
                         contentColor = Raisin,
@@ -446,6 +482,8 @@ fun HeatMapScreen(
                                 properties = props,
                                 uiSettings = uiSettings,
                                 movingPlayers = movingPlayers,
+                                seekers = currentSeekers,
+                                canSeeSeeker = canSeeSeeker,
                                 tileProvider = tileProvider,
                                 circleCoords = circleCoords
                             )
@@ -469,7 +507,7 @@ fun HeatMapScreen(
                                             }
                                         val hidingAmount =
                                             it.count { player ->
-                                                player.inGameStatus == InGameStatus.PLAYER.ordinal
+                                                player.inGameStatus == InGameStatus.HIDING.ordinal
                                                         || player.inGameStatus == InGameStatus.MOVING.ordinal
                                             }
                                         Row(
@@ -505,14 +543,18 @@ fun HeatMapScreen(
                                 }
                             }
 
-                            if (showRadar) {
-                                RadarDialog(gameId = gameId) { showRadar = false }
+                            if (showRadarDialog) {
+                                RadarDialog(gameId = gameId) { showRadarDialog = false }
                             }
 
                             if (showQR) {
                                 ShowMyQRDialog {
                                     showQR = false
                                 }
+                            }
+
+                            if (showJammer) {
+                                Jammer()
                             }
 
                             if (showQRScanner && cameraIsAllowed) {
@@ -583,6 +625,14 @@ fun HeatMapScreen(
                                 )
                             }
 
+                            if (showPowers) {
+                                PowersDialog(
+                                    onDismiss = { vm.updateShowPowersDialog(false) },
+                                    vm = vm,
+                                    gameId
+                                )
+                            }
+
                             BackHandler(enabled = true) {
                                 showLeaveGameDialog = true
                             }
@@ -595,6 +645,15 @@ fun HeatMapScreen(
             }
         }
     )
+}
+
+@Composable
+fun Jammer() {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Text(text = "You have been jammed", modifier = Modifier.align(Alignment.Center))
+        }
+    }
 }
 
 @Composable
@@ -882,6 +941,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     //    val timeRemaining = MutableLiveData<Int>()
     val players = MutableLiveData<List<Player>>()
+    val currentSeekers = MutableLiveData<List<Player>>()
+    val canSeeSeeker = MutableLiveData<Boolean>()
+    val showPowersDialog = MutableLiveData<Boolean>()
+    val showJammer = MutableLiveData<Boolean>()
     val playerStatus = Transformations.map(players) { list ->
         list.find { it.playerId == firestore.uid!! }?.inGameStatus
     }
@@ -890,7 +953,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         players.filter { it.playerId != FirebaseHelper.uid!! }
     }
     val heatPositions = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.PLAYER.ordinal }
+        players.filter { it.inGameStatus == InGameStatus.HIDING.ordinal || it.inGameStatus == InGameStatus.DECOYED.ordinal }
             .map { LatLng(it.location.latitude, it.location.longitude) }
     }
     val movingPlayers = Transformations.map(playersWithoutSelf) { players ->
@@ -907,7 +970,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 1",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.22338389989929, 24.756749169655805),
                 playerId = "player 1",
                 distanceStatus = PlayerDistance.WITHIN50.ordinal
@@ -923,7 +986,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 3",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.223032239987354, 24.758830563735074),
                 playerId = "player 3",
                 distanceStatus = PlayerDistance.WITHIN10.ordinal
@@ -947,7 +1010,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 6",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.223841983003645, 24.759626485065098),
                 playerId = "player 6",
                 distanceStatus = PlayerDistance.WITHIN50.ordinal
@@ -963,7 +1026,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             Player(
                 nickname = "player 8",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.ordinal,
+                inGameStatus = InGameStatus.HIDING.ordinal,
                 location = GeoPoint(60.22314399742664, 24.757781125478843),
                 playerId = "player 8",
                 distanceStatus = PlayerDistance.WITHIN10.ordinal
@@ -998,12 +1061,24 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                     return@addSnapshotListener
                 }
                 val playersFetched = data.toObjects(Player::class.java)
+                val seekersFound = playersFetched.filter {
+                    it.inGameStatus == InGameStatus.SEEKER.ordinal || it.inGameStatus == InGameStatus.JAMMED.ordinal
+                }
+                currentSeekers.postValue(seekersFound)
                 players.postValue(playersFetched)
             }
     }
 
     fun updateIsSeeker(newVal: Boolean) {
         isSeeker.value = newVal
+    }
+
+    fun updateShowPowersDialog(newVal: Boolean) {
+        showPowersDialog.value = newVal
+    }
+
+    fun updateShowJammer(newVal: Boolean) {
+        showJammer.value = newVal
     }
 
 //    fun getTime(gameId: String) {
@@ -1038,6 +1113,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateUser(changeMap: Map<String, Any>, uid: String) =
         firestore.updateUser(changeMap = changeMap, userId = uid)
+
+    fun updatePlayer(changeMap: Map<String, Any>, gameId: String, uid: String) {
+        firestore.updatePlayer(changeMap, uid, gameId)
+    }
 
     fun setPlayerInGameStatus(status: Int, gameId: String, playerId: String) {
         firestore.updatePlayerInGameStatus(
@@ -1141,5 +1220,153 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         unregisterReceiver(context)
     }
 
+    //Variables and functions for the step counter
+    private var steps = 0
+    private var distance = 0.0F
+    private var running = false
+    private val stepLength = 0.78F
+
+    //private val context = application
+    private var initialSteps = -1
+    private val sensorManager: SensorManager =
+        application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    val stepCounterSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+    private val sharedPreference: SharedPreferences =
+        application.getSharedPreferences("statistics", Context.MODE_PRIVATE)
+    private var sharedPreferenceEditor: SharedPreferences.Editor = sharedPreference.edit()
+
+    //https://www.geeksforgeeks.org/proximity-sensor-in-android-app-using-jetpack-compose/
+    private val sensorEventListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor == stepCounterSensor) {
+                if (running == true) {
+                    event.values.firstOrNull()?.toInt()?.let { newSteps ->
+                        if (initialSteps == -1) {
+                            initialSteps = newSteps
+                        }
+                        val currentSteps = newSteps.minus(initialSteps)
+                        steps = currentSteps
+                        Log.d("steps", steps.toString())
+                    }
+                }
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, p1: Int) {
+            Log.d(sensor.toString(), p1.toString())
+        }
+    }
+
+    fun startStepCounter() {
+        running = true
+        sensorManager.registerListener(
+            sensorEventListener,
+            stepCounterSensor,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+    }
+
+    fun stopStepCounter() {
+        running = false
+        sensorManager.unregisterListener(sensorEventListener)
+        sharedPreferenceEditor.putInt("step count", steps)
+        sharedPreferenceEditor.commit()
+
+        countDistance()
+        //val value = sharedPreference.getInt("step count", 0)
+        //Log.d("steps from shared preferences", value.toString())
+
+        //Toast.makeText(context, "steps taken: $value", Toast.LENGTH_LONG).show()
+        initialSteps = -1
+    }
+
+    private fun countDistance() {
+        distance = stepLength.times(steps.toFloat())
+        sharedPreferenceEditor.putFloat("distance moved", distance)
+        sharedPreferenceEditor.commit()
+    }
+
+    fun revealSeekers() {
+        Log.d("powerups", "reveal seekers")
+        showPowersDialog.value = false
+        canSeeSeeker.value = true
+        viewModelScope.launch {
+            delay(10000)
+            canSeeSeeker.value = false
+        }
+    }
+
+    fun activateInvisibility(gameId: String) {
+        Log.d("powerups", "im invisible")
+        showPowersDialog.value = false
+        val changeMap = mapOf(
+            Pair("inGameStatus", InGameStatus.INVISIBLE.ordinal)
+        )
+        firestore.updatePlayer(changeMap, FirebaseHelper.uid!!, gameId)
+        val timer = object : CountDownTimer(15000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+            }
+
+            override fun onFinish() {
+                val changeMap2 = mapOf(
+                    Pair("inGameStatus", InGameStatus.HIDING.ordinal)
+                )
+                firestore.updatePlayer(changeMap2, FirebaseHelper.uid!!, gameId)
+                this.cancel()
+            }
+        }
+        timer.start()
+    }
+
+    fun activateJammer(gameId: String) {
+        Log.d("powerups", "jamming seekers")
+        showPowersDialog.value = false
+        currentSeekers.value?.forEach {
+            val changeMap = mapOf(
+                Pair("inGameStatus", InGameStatus.JAMMED.ordinal)
+            )
+            firestore.updatePlayer(changeMap, it.playerId, gameId)
+        }
+        val timer = object : CountDownTimer(10000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+            }
+
+            override fun onFinish() {
+                currentSeekers.value?.forEach {
+                    val changeMap2 = mapOf(
+                        Pair("inGameStatus", InGameStatus.SEEKER.ordinal)
+                    )
+                    firestore.updatePlayer(changeMap2, it.playerId, gameId)
+                }
+                this.cancel()
+            }
+        }
+        timer.start()
+    }
+
+    fun deployDecoy(gameId: String) {
+        Log.d("powerups", "deploying decoy")
+        showPowersDialog.value = false
+        val changeMap = mapOf(
+            Pair("inGameStatus", InGameStatus.DECOYED.ordinal)
+        )
+        firestore.updatePlayer(changeMap, FirebaseHelper.uid!!, gameId)
+        val timer = object : CountDownTimer(15000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+            }
+
+            override fun onFinish() {
+                val changeMap2 = mapOf(
+                    Pair("inGameStatus", InGameStatus.HIDING.ordinal)
+                )
+                firestore.updatePlayer(changeMap2, FirebaseHelper.uid!!, gameId)
+                this.cancel()
+            }
+        }
+        timer.start()
+    }
 }
 
