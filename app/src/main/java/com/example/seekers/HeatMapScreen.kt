@@ -190,13 +190,6 @@ fun HeatMapScreen(
                     vm.stopStepCounter()
                     Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
                     navController.navigate(NavRoutes.EndGame.route + "/$gameId")
-                    /*
-
-                * Steps
-                * Time survived
-                * Time as seeker
-                * Number of players found by me
-                * */
                 }
             }
         }
