@@ -164,8 +164,8 @@ fun PowerButton(power: Power, vm: HeatMapViewModel, gameId: String) {
     fun actionToDo(powerActionInt: Int) {
         val action = when (powerActionInt) {
             1 -> vm.activateInvisibility(gameId)
-            2 -> vm.activateJammer()
-            3 -> vm.deployDecoy()
+            2 -> vm.activateJammer(gameId)
+            3 -> vm.deployDecoy(gameId)
             4 -> vm.revealSeekers()
             else -> {}
     }

@@ -211,7 +211,7 @@ fun LobbyQRScreen(
         }
         if (showLeaveDialog) {
             LeaveGameDialog(onDismissRequest = { showLeaveDialog = false }, onConfirm = {
-                vm.removePlayer(gameId, "")
+                vm.removePlayer(gameId, FirebaseHelper.uid!!)
                 vm.updateUser(
                     FirebaseHelper.uid!!,
                     mapOf(Pair("currentGameId", ""))

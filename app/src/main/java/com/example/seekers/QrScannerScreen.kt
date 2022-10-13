@@ -39,21 +39,13 @@ fun QrScannerScreen(
 
     LaunchedEffect(gameId) {
         gameId?.let {
-            val firestore = FirebaseHelper
-            val HIDING = Player(
+            val player = Player(
                 nickname = nickname,
                 avatarId = avatarId,
                 playerId = FirebaseHelper.uid!!,
                 inLobbyStatus = InLobbyStatus.JOINED.ordinal,
                 inGameStatus = InGameStatus.HIDING.ordinal
             )
-            firestore.addPlayer(HIDING, it)
-            firestore.updateUser(
-                FirebaseHelper.uid!!,
-                mapOf(Pair("currentGameId", it))
-            )
-            navController.navigate(NavRoutes.LobbyQR.route + "/$it")
-
             val hasLobby = withContext(Dispatchers.IO) {
                 vm.getLobby(it)
             }
@@ -70,7 +62,8 @@ fun QrScannerScreen(
                     ).show()
                     navController.navigate(NavRoutes.StartGame.route)
                 } else {
-                    vm.firestore.addPlayer(HIDING, it)
+                    Log.d("lobbyJoin", "lobby max: ${lobby?.maxPlayers}")
+                    vm.firestore.addPlayer(player, it)
                     vm.firestore.updateUser(
                         FirebaseHelper.uid!!,
                         mapOf(Pair("currentGameId", it))
@@ -101,7 +94,7 @@ class ScannerViewModel : ViewModel() {
     val lobby = MutableLiveData<Lobby>()
     val playersInLobby = MutableLiveData<Int>()
 
-    fun getLobby(gameId: String): Boolean {
+    suspend fun getLobby(gameId: String): Boolean {
         firestore.getLobby(gameId).addSnapshotListener { data, e ->
             data ?: kotlin.run {
                 Log.e(TAG, "getLobby: ", e)
@@ -112,7 +105,7 @@ class ScannerViewModel : ViewModel() {
         return true
     }
 
-    fun getNumberOfPlayersInLobby(gameId: String): Boolean {
+    suspend fun getNumberOfPlayersInLobby(gameId: String): Boolean {
         firestore.getPlayers(gameId).addSnapshotListener { data, e ->
             data ?: kotlin.run {
                 Log.e(TAG, "getLobby: ", e)

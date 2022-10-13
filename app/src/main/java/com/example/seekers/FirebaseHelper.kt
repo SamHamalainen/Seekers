@@ -200,6 +200,8 @@ enum class InGameStatus {
     MOVING,
     ELIMINATED,
     INVISIBLE,
+    JAMMED,
+    DECOYED,
     LEFT
 }
 

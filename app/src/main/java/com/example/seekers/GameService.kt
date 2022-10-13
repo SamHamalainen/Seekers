@@ -80,7 +80,7 @@ class GameService : Service() {
                         scope.launch {
                             if (!seekerNearbySent) {
                                 checkDistanceToSeekers(curLoc, gameId)
-                                delay(30 * 1000)
+                                delay(60 * 1000)
                                 seekerNearbySent = false
                             }
                         }
@@ -97,6 +97,29 @@ class GameService : Service() {
         }
         callback = locCallback
         return locCallback
+    }
+
+    fun updatePlayerLoc(gameId: String, curLoc: Location) {
+        Log.d(TAG, "updateLoc: sent location")
+        firestore.updatePlayer(
+            mapOf(
+                Pair(
+                    "location",
+                    GeoPoint(curLoc.latitude, curLoc.longitude)
+                )
+            ),
+            firestore.uid!!,
+            gameId
+        )
+        previousLoc = curLoc
+    }
+
+    fun setInGameStatus (status: Int, gameId: String) {
+        firestore.updatePlayerInGameStatus(
+            status,
+            gameId,
+            firestore.uid!!
+        )
     }
 
     fun updateLoc(prevLoc: Location?, curLoc: Location, gameId: String, isSeeker: Boolean) {
@@ -117,42 +140,29 @@ class GameService : Service() {
             return
         }
         val distanceToPrev = prevLoc.distanceTo(curLoc)
-        if (distanceToPrev > 5f) {
-            firestore.getPlayer(gameId, firestore.uid!!).get()
-                .addOnSuccessListener {
-                    val player = it.toObject<Player>()
-                    val isInvisible = player?.inGameStatus == InGameStatus.INVISIBLE.ordinal
-                    if (!isInvisible) {
-                        Log.d(TAG, "updateLoc: sent location")
-                        firestore.updatePlayer(
-                            mapOf(
-                                Pair(
-                                    "location",
-                                    GeoPoint(curLoc.latitude, curLoc.longitude)
-                                )
-                            ),
-                            firestore.uid!!,
-                            gameId
-                        )
-                        previousLoc = curLoc
-                        if (!isSeeker) {
-                            firestore.updatePlayerInGameStatus(
-                                InGameStatus.MOVING.ordinal,
-                                gameId,
-                                firestore.uid!!
-                            )
+
+        firestore.getPlayer(gameId, firestore.uid!!).get()
+            .addOnSuccessListener {
+                val player = it.toObject<Player>()
+                when (player?.inGameStatus) {
+                    InGameStatus.JAMMED.ordinal, InGameStatus.SEEKER.ordinal -> {
+                        if (distanceToPrev > 10f) {
+                            updatePlayerLoc(gameId, curLoc)
+                        }
+                    }
+                    InGameStatus.HIDING.ordinal -> {
+                        if (distanceToPrev > 10f) {
+                            updatePlayerLoc(gameId, curLoc)
+                            setInGameStatus(InGameStatus.MOVING.ordinal, gameId)
+                        }
+                    }
+                    InGameStatus.MOVING.ordinal -> {
+                        if (distanceToPrev <= 10f) {
+                            setInGameStatus(InGameStatus.HIDING.ordinal, gameId)
                         }
                     }
                 }
-        } else {
-            if (!isSeeker) {
-                firestore.updatePlayerInGameStatus(
-                    InGameStatus.HIDING.ordinal,
-                    gameId,
-                    firestore.uid!!
-                )
             }
-        }
     }
 
     fun checkDistanceToSeekers(ownLocation: Location, gameId: String) {
@@ -395,7 +405,8 @@ class GameService : Service() {
         )
 
         Notifications.createNotificationChannel(
-            context = applicationContext)
+            context = applicationContext
+        )
         val notification = buildMainNotification(null)
         startForeground(MAIN_NOTIFICATION_ID, notification)
         startTracking(gameId, isSeeker)
