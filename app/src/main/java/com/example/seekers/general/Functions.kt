@@ -1,9 +1,11 @@
 package com.example.seekers.general
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.*
 import android.util.Log
 import android.util.Size
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -368,5 +370,13 @@ fun getBoundsZoomLevel(bounds: LatLngBounds, mapDim: Size): Double {
     val lngZoom = zoom(mapDim.width, WORLD_DIM.width, lngFraction)
 
     return minOf(latZoom, lngZoom, ZOOM_MAX)
+}
+
+fun adjustContentWithKB(context: Context, isPan: Boolean = false) {
+    if (isPan) {
+        (context as Activity).window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+    } else {
+        (context as Activity).window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+    }
 }
 

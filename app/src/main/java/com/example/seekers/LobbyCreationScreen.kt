@@ -26,6 +26,7 @@ import com.example.seekers.general.CustomButton
 import com.example.seekers.general.IconButton
 import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.Raisin
+import com.example.seekers.ui.theme.SizzlingRed
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -217,6 +218,7 @@ fun Input(
     title: String,
     value: String,
     keyboardType: KeyboardType = KeyboardType.Text,
+    isError: Boolean = false,
     onChangeValue: (String) -> Unit
 ) {
     Column(modifier = modifier) {
@@ -229,9 +231,15 @@ fun Input(
             OutlinedTextField(
                 value = value,
                 onValueChange = onChangeValue,
+                isError = isError,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 label = { Text(text = title) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
+                    errorBorderColor = SizzlingRed,
+                    errorLabelColor = SizzlingRed,
+                    errorCursorColor = SizzlingRed,
+                    errorLeadingIconColor = SizzlingRed,
+                    errorTrailingIconColor = SizzlingRed,
                     focusedBorderColor = Raisin,
                     focusedLabelColor = Raisin,
                     unfocusedBorderColor = Raisin,

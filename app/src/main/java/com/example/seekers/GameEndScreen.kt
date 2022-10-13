@@ -67,7 +67,7 @@ fun GameEndScreen(
                         }
                     val hidingAmount =
                         it.count { player ->
-                            player.inGameStatus == InGameStatus.PLAYER.ordinal
+                            player.inGameStatus == InGameStatus.HIDING.ordinal
                                     || player.inGameStatus == InGameStatus.MOVING.ordinal
                         }
                     val foundAmount = total.minus(hidingAmount)

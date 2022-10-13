@@ -15,6 +15,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.CustomButton
+import com.example.seekers.general.adjustContentWithKB
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.avatarBackground
@@ -37,10 +39,13 @@ fun AvatarPickerScreen(
     navController: NavHostController,
     isCreator: Boolean,
 ) {
-
+    val context = LocalContext.current
     val avatarId by vm.avatarId.observeAsState(R.drawable.avatar_empty)
     val nickname by vm.nickname.observeAsState("")
+    val nicknameError by vm.nicknameError.observeAsState(false)
+    val showNicknameEmpty by vm.showNicknameEmpty.observeAsState(false)
     val keyboardController = LocalSoftwareKeyboardController.current
+    adjustContentWithKB(context, isPan = false)
 
     val sheetState = rememberModalBottomSheetState(
         initialValue = ModalBottomSheetValue.Hidden,
@@ -62,7 +67,9 @@ fun AvatarPickerScreen(
                 }
             })
         },
-        modifier = Modifier.fillMaxSize().background(color = Powder)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = Powder)
     ) {
         Column(
             modifier = Modifier
@@ -95,19 +102,32 @@ fun AvatarPickerScreen(
             }
             Spacer(modifier = Modifier.height(32.dp))
             Input(
+                modifier = Modifier.fillMaxWidth(),
                 title = "Nickname",
                 value = nickname,
+                isError = nicknameError,
                 onChangeValue = {
                     vm.nickname.value = it
                 })
+            if (showNicknameEmpty) {
+                Box(modifier = Modifier.fillMaxWidth().padding(top = 5.dp)) {
+                    ValidationErrorRow(text = "Please enter a nickname")
+                }
+            }
             Spacer(modifier = Modifier.height(32.dp))
             CustomButton(text = if (isCreator) "Continue" else "Join lobby") {
                 val avatarIndex = avatarList.indexOf(avatarId)
-                if (!isCreator) {
-                    navController.navigate(NavRoutes.Scanner.route + "/$nickname/$avatarIndex")
+                if (nickname.isNotBlank()) {
+                    if (!isCreator) {
+                        navController.navigate(NavRoutes.Scanner.route + "/$nickname/$avatarIndex")
+                    } else {
+                        navController.navigate(NavRoutes.LobbyCreation.route + "/$nickname/$avatarIndex")
+                    }
                 } else {
-                    navController.navigate(NavRoutes.LobbyCreation.route + "/$nickname/$avatarIndex")
+                    vm.nicknameError.value = true
+                    vm.showNicknameEmpty.value = true
                 }
+
             }
         }
     }
@@ -184,4 +204,7 @@ class AvatarViewModel() : ViewModel() {
     val avatarId = MutableLiveData<Int>(R.drawable.avatar_empty)
     val nickname = MutableLiveData("")
     val firestore = FirebaseHelper
+    val nicknameError = MutableLiveData<Boolean>()
+    val showNicknameEmpty = MutableLiveData<Boolean>()
+
 }

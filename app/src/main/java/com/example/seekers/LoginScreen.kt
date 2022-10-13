@@ -31,10 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.seekers.general.CustomButton
-import com.example.seekers.general.CustomOutlinedTextField
-import com.example.seekers.general.isEmailValid
-import com.example.seekers.general.isPasswordValid
+import com.example.seekers.general.*
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.avatarBackground
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -60,6 +57,7 @@ fun LoginForm(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp * 0.8
+    adjustContentWithKB(context, isPan = true)
 
     Column(
         verticalArrangement = Arrangement.SpaceEvenly,
