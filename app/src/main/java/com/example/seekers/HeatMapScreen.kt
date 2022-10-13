@@ -114,7 +114,7 @@ fun HeatMapScreen(
     var showPlayerList by remember { mutableStateOf(false) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
-    var showPowers by remember { mutableStateOf(false) }
+    val showPowers by vm.showPowersDialog.observeAsState(false)
 
     // permissions
     val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
@@ -356,7 +356,7 @@ fun HeatMapScreen(
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
-                                showPowers = true
+                                vm.updateShowPowersDialog(true)
                             },
                             content = {
                                 Column(
@@ -619,7 +619,7 @@ fun HeatMapScreen(
 
                             if (showPowers) {
                                 PowersDialog(
-                                    onDismiss = { showPowers = false },
+                                    onDismiss = { vm.updateShowPowersDialog(false) },
                                     vm = vm,
                                     gameId
                                 )
@@ -914,6 +914,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     val players = MutableLiveData<List<Player>>()
     val currentSeekers = MutableLiveData<List<Player>>()
     val canSeeSeeker = MutableLiveData<Boolean>()
+    val showPowersDialog = MutableLiveData<Boolean>()
     val playerStatus = Transformations.map(players) { list ->
         list.find { it.playerId == firestore.uid!! }?.inGameStatus
     }
@@ -1040,6 +1041,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateIsSeeker(newVal: Boolean) {
         isSeeker.value = newVal
+    }
+
+    fun updateShowPowersDialog(newVal: Boolean) {
+        showPowersDialog.value = newVal
     }
 
 //    fun getTime(gameId: String) {
@@ -1249,30 +1254,33 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun revealSeekers() {
         Log.d("powerups", "reveal seekers")
+        showPowersDialog.value = false
         canSeeSeeker.value = true
-//        val changeMap = mapOf(
-//            Pair("asSeekerStatus", SeekersStatus.REVEALED.ordinal)
-//        )
-//        currentSeekers.value?.forEach {
-//            Log.d("powerups", "player: ${it.playerId}")
-//            Log.d("powerups", "game: $gameId")
-//            updatePlayer(changeMap, it.playerId, gameId)
-//        }
         viewModelScope.launch {
             delay(10000)
-//            val changeMap2 = mapOf(
-//                Pair("asSeekerStatus", SeekersStatus.NOT_EFFECTED.ordinal)
-//            )
-//            currentSeekers.value?.forEach{
-//                Log.d("powerups", "changed back to no visible")
-//                updatePlayer(changeMap2, it.playerId, gameId)
-//            }
             canSeeSeeker.value = false
         }
     }
 
-    fun activateInvisibility() {
+    fun activateInvisibility(gameId: String) {
         Log.d("powerups", "im invisible")
+        showPowersDialog.value = false
+        val changeMap = mapOf(
+            Pair("inGameStatus", InGameStatus.INVISIBLE.ordinal)
+        )
+        firestore.updatePlayer(changeMap, FirebaseHelper.uid!!, gameId)
+        val timer = object : CountDownTimer(15000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+            }
+            override fun onFinish() {
+                val changeMap2 = mapOf(
+                    Pair("inGameStatus", InGameStatus.PLAYER.ordinal)
+                )
+                firestore.updatePlayer(changeMap2, FirebaseHelper.uid!!, gameId)
+            }
+        }
+        timer.start()
     }
 
     fun activateJammer() {

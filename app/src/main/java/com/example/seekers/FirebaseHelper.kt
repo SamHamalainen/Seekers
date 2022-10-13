@@ -199,6 +199,7 @@ enum class InGameStatus {
     PLAYER,
     MOVING,
     ELIMINATED,
+    INVISIBLE,
     LEFT
 }
 
