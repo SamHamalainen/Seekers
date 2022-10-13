@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.CustomButton
 import com.google.firebase.firestore.ktx.toObject
+import java.math.RoundingMode
 
 @Composable
 fun GameEndScreen(
@@ -54,13 +55,21 @@ fun GameEndScreen(
                 .padding(30.dp)) {
                 Text("STATISTICS", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text("Steps taken: $steps", fontSize = 18.sp)
+                Text("Steps taken: $steps", fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text("Distance walked: $distance", fontSize = 18.sp)
+                Text("Distance walked: $distance meters", fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text("Your time as seeker: $timeAsSeeker", fontSize = 18.sp)
+                Text("Your time as seeker: $timeAsSeeker minutes", fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text("Your time in hiding: $timeSurvived", fontSize = 18.sp)
+                if (timeSurvived !=null){
+                    if (timeSurvived!! >=0){
+                        Text("Your time in hiding: $timeSurvived minutes", fontSize = 16.sp)
+                    } else {
+                        Text("Your time in hiding: 0 minutes", fontSize = 16.sp)
+                    }
+                }
+
+
             }
         }
         CustomButton(text = "Start a new game") {
@@ -80,10 +89,12 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
     )
     val timeAsSeeker = MutableLiveData<Int>(null)
     val timeSurvived = MutableLiveData<Int>(null)
+    val steps = MutableLiveData(0)
+    val distance = MutableLiveData(0.0F)
 
     fun getTimeAsSeeker(gameId: String, playerId: String){
-        FirebaseHelper.getLobby(gameId).get().addOnSuccessListener {
-            val lobby = it.toObject<Lobby>()
+        FirebaseHelper.getLobby(gameId).get().addOnSuccessListener { documentSnapshot ->
+            val lobby = documentSnapshot.toObject<Lobby>()
             val endTime = lobby?.let { it1 ->
                 lobby.startTime.toDate().time.div(1000).toInt().plus(lobby.countdown).plus(
                     it1.timeLimit*60)
@@ -92,18 +103,14 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
                 val player = it.toObject(Player::class.java)
                 val eliminationTime = player?.timeOfElimination?.toDate()?.time?.div(1000)?.toInt()
                 val seekerTime =  eliminationTime?.let { it1 -> endTime?.minus(it1) }
-                timeAsSeeker.value = seekerTime
-
-                timeSurvived.value = seekerTime?.let { it1 -> lobby?.timeLimit?.minus(it1) }
+                timeAsSeeker.value = seekerTime?.div(60)
+                timeSurvived.value = seekerTime?.let { it1 -> lobby?.timeLimit?.times(60)?.minus(it1)?.div(60) }
             }
         }
     }
 
-    val steps = MutableLiveData(0)
-    val distance = MutableLiveData(0.0F)
-
     fun getSteps() {
         steps.value = sharedPreference.getInt("step count", 0)
-        distance.value = sharedPreference.getFloat("distance moved", 0.0F)
+        distance.value = sharedPreference.getFloat("distance moved", 0.0F).toBigDecimal().setScale(1, RoundingMode.UP).toFloat()
     }
 }
