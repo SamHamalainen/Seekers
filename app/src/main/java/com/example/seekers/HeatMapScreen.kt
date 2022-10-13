@@ -568,7 +568,7 @@ fun HeatMapScreen(
                             if (showPlayerFound) {
                                 PlayerFoundDialog(playerFound = playerFound, onCancel = {
                                     val nickname = playerFound?.nickname
-                                    vm.addFoundNews(gameId, nickname.toString())
+                                    vm.addFoundNews(gameId, nickname.toString(), playerFound?.playerId.toString())
                                     playerFound = null
                                     showPlayerFound = false
                                 }) {
@@ -751,13 +751,15 @@ fun NewsItem(news: News, gameId: String) {
             modifier = Modifier.padding(16.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = "selfie",
-                    modifier = Modifier
-                        .aspectRatio(it.width.toFloat() / it.height)
-                        .fillMaxWidth()
-                )
+                if (news.picId.isNotBlank()) {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "selfie",
+                        modifier = Modifier
+                            .aspectRatio(it.width.toFloat() / it.height)
+                            .fillMaxWidth()
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1125,9 +1127,9 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         firestore.updatePlayer(changeMap, playerId, gameId)
     }
 
-    fun addFoundNews(gameId: String, nickname: String) {
+    fun addFoundNews(gameId: String, nickname: String, playerId: String) {
         val news = News("", "$nickname was found!", Timestamp.now())
-        firestore.addFoundNews(news, gameId)
+        firestore.addFoundNews(news, gameId, playerId)
     }
 
     fun sendSelfie(foundPlayerId: String, gameId: String, selfie: Bitmap, nickname: String) {

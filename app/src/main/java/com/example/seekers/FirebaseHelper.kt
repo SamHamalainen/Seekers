@@ -138,12 +138,12 @@ object FirebaseHelper {
                     text = "$nickname was found!",
                     timestamp = Timestamp.now()
                 )
-                addFoundNews(news = news, gameId)
+                addFoundNews(news = news, gameId, playerId)
             }
     }
 
-    fun addFoundNews(news: News, gameId: String) {
-        lobbiesRef.document(gameId).collection("news").document(news.picId)
+    fun addFoundNews(news: News, gameId: String, playerId: String) {
+        lobbiesRef.document(gameId).collection("news").document(playerId)
             .set(news)
             .addOnSuccessListener {
                 Log.d(TAG, "addFoundNews: ${news.picId}")
