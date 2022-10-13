@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.example.seekers.general.CustomButton
 import com.example.seekers.general.IconButton
 import com.example.seekers.general.QRCodeComponent
 import com.example.seekers.general.generateQRCode
+import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.ui.theme.avatarBackground
 import com.google.firebase.firestore.FieldValue
@@ -333,6 +336,8 @@ fun ShowRules(vm: LobbyCreationScreenViewModel) {
 
 @Composable
 fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
+
+    val context = LocalContext.current
     val maxPlayers by vm.maxPlayers.observeAsState()
     val timeLimit by vm.timeLimit.observeAsState()
     val countdown by vm.countdown.observeAsState()
@@ -362,7 +367,7 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
             IconButton(
                 resourceId = R.drawable.map,
                 buttonText = "Define Area",
-                buttonColor = if (showMap) Color(0xFF838383) else Color.LightGray,
+                buttonColor = Emerald,
             ) {
                 vm.updateShowMap(true)
             }

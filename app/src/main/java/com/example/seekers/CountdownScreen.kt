@@ -1,7 +1,12 @@
 package com.example.seekers
 
-import android.content.BroadcastReceiver
 import android.content.Context
+import android.media.MediaPlayer
+import android.os.CountDownTimer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
+import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,9 +20,11 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
@@ -217,11 +224,3 @@ class CountdownViewModel : ViewModel() {
         context.unregisterReceiver(countdownReceiver)
     }
 }
-
-//@Preview
-//@Composable
-//fun CountdownPrev() {
-//    SeekersTheme() {
-//        CountdownScreen(seconds = 10, navController = rememberNavController())
-//    }
-//}
