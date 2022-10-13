@@ -12,11 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.seekers.general.CustomButton
+import com.google.firebase.firestore.ktx.toObject
 
 @Composable
 fun GameEndScreen(
@@ -24,10 +28,17 @@ fun GameEndScreen(
     navController: NavHostController,
     gameId: String,
 ) {
-    vm.setValues()
+    val playerId=FirebaseHelper.uid
+    vm.getSteps()
+    if (playerId != null) {
+        vm.getTimeAsSeeker(gameId, playerId)
+    }
 
     val steps by vm.steps.observeAsState()
     val distance by vm.distance.observeAsState()
+    val timeAsSeeker by vm.timeAsSeeker.observeAsState()
+    val timeSurvived by vm.timeSurvived.observeAsState()
+
 
     Column(
         verticalArrangement = Arrangement.SpaceEvenly,
@@ -36,18 +47,25 @@ fun GameEndScreen(
             .padding(30.dp)
             .fillMaxSize(),
     ) {
-        Card(modifier = Modifier
-            .padding(20.dp)) {
-            Column() {
+        Text(text = "Game over!", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Card() {
+            Column(modifier = Modifier
+                .padding(20.dp)) {
                 Text("Steps taken: $steps")
                 Text("Distance walked: $distance")
+                Text("Time as seeker: $timeAsSeeker")
+                Text("Time survived: $timeSurvived")
             }
         }
+        /*
         Button(onClick = { navController.navigate(NavRoutes.Heatmap.route + "/$gameId") }) {
             Text("Back to the game")
         }
         Button(onClick = { navController.navigate(NavRoutes.StartGame.route) }) {
             Text("Start a new game")
+        }*/
+        CustomButton(text = "Start a new game") {
+            navController.navigate(NavRoutes.StartGame.route + "/$gameId")
         }
     }
 }
@@ -59,12 +77,32 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
         "statistics",
         Context.MODE_PRIVATE
     )
+    val timeAsSeeker = MutableLiveData<Int>(null)
+    val timeSurvived = MutableLiveData<Int>(null)
+
+    fun getTimeAsSeeker(gameId: String, playerId: String){
+        FirebaseHelper.getLobby(gameId).get().addOnSuccessListener {
+            val lobby = it.toObject<Lobby>()
+            val endTime = lobby?.let { it1 ->
+                lobby.startTime.toDate().time.div(1000).toInt().plus(lobby.countdown).plus(
+                    it1.timeLimit*60)
+            }
+            FirebaseHelper.getPlayer(gameId, playerId).get().addOnSuccessListener {
+                val player = it.toObject(Player::class.java)
+                val eliminationTime = player?.timeOfElimination?.toDate()?.time?.div(1000)?.toInt()
+                val seekerTime =  eliminationTime?.let { it1 -> endTime?.minus(it1) }
+                timeAsSeeker.value = seekerTime
+
+                timeSurvived.value = seekerTime?.let { it1 -> lobby?.timeLimit?.minus(it1) }
+            }
+        }
+    }
+
 
     val steps = MutableLiveData(0)
-
     val distance = MutableLiveData(0.0F)
 
-    fun setValues() {
+    fun getSteps() {
         steps.value = sharedPreference.getInt("step count", 0)
         distance.value = sharedPreference.getFloat("distance moved", 0.0F)
     }
