@@ -182,22 +182,21 @@ fun HeatMapScreen(
     LaunchedEffect(lobbyStatus) {
         lobbyStatus?.let {
             when (it) {
-                LobbyStatus.FINISHED.ordinal -> {
-                LobbyStatus.ACTIVE.value ->{
+                LobbyStatus.ACTIVE.ordinal -> {
                     vm.startStepCounter()
                 }
 
-                LobbyStatus.FINISHED.value -> {
+                LobbyStatus.FINISHED.ordinal -> {
                     vm.stopStepCounter()
                     Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
                     navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                     /*
 
-                    * Steps
-                    * Time survived
-                    * Time as seeker
-                    * Number of players found by me
-                    * */
+                * Steps
+                * Time survived
+                * Time as seeker
+                * Number of players found by me
+                * */
                 }
             }
         }
@@ -221,7 +220,11 @@ fun HeatMapScreen(
             if (it == InGameStatus.ELIMINATED.ordinal) {
                 showQR = false
                 vm.stopService(context)
-                vm.setPlayerInGameStatus(InGameStatus.SEEKER.ordinal, gameId, FirebaseHelper.uid!!)
+                vm.setPlayerInGameStatus(
+                    InGameStatus.SEEKER.ordinal,
+                    gameId,
+                    FirebaseHelper.uid!!
+                )
                 vm.updateIsSeeker(true)
                 vm.startService(context = context, gameId = gameId, isSeeker = true)
                 Toast.makeText(context, "You are now a seeker!", Toast.LENGTH_SHORT).show()
@@ -451,7 +454,10 @@ fun HeatMapScreen(
 
                     FloatingActionButton(
                         elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                        modifier = Modifier.border(BorderStroke(1.dp, Raisin), shape = CircleShape),
+                        modifier = Modifier.border(
+                            BorderStroke(1.dp, Raisin),
+                            shape = CircleShape
+                        ),
                         shape = CircleShape,
                         backgroundColor = Emerald,
                         contentColor = Raisin,
@@ -612,7 +618,11 @@ fun HeatMapScreen(
                             }
 
                             if (showPowers) {
-                                PowersDialog(onDismiss = { showPowers = false }, vm = vm, gameId)
+                                PowersDialog(
+                                    onDismiss = { showPowers = false },
+                                    vm = vm,
+                                    gameId
+                                )
                             }
 
                             BackHandler(enabled = true) {
@@ -1171,6 +1181,72 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         unregisterReceiver(context)
     }
 
+    //Variables and functions for the step counter
+    private var steps = 0
+    private var distance = 0.0F
+    private var running = false
+    private val stepLength = 0.78F
+
+    //private val context = application
+    private var initialSteps = -1
+    private val sensorManager: SensorManager =
+        application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    val stepCounterSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+    private val sharedPreference: SharedPreferences =
+        application.getSharedPreferences("statistics", Context.MODE_PRIVATE)
+    private var sharedPreferenceEditor: SharedPreferences.Editor = sharedPreference.edit()
+
+    //https://www.geeksforgeeks.org/proximity-sensor-in-android-app-using-jetpack-compose/
+    private val sensorEventListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor == stepCounterSensor) {
+                if (running == true) {
+                    event.values.firstOrNull()?.toInt()?.let { newSteps ->
+                        if (initialSteps == -1) {
+                            initialSteps = newSteps
+                        }
+                        val currentSteps = newSteps.minus(initialSteps)
+                        steps = currentSteps
+                        Log.d("steps", steps.toString())
+                    }
+                }
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, p1: Int) {
+            Log.d(sensor.toString(), p1.toString())
+        }
+    }
+
+    fun startStepCounter() {
+        running = true
+        sensorManager.registerListener(
+            sensorEventListener,
+            stepCounterSensor,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+    }
+
+    fun stopStepCounter() {
+        running = false
+        sensorManager.unregisterListener(sensorEventListener)
+        sharedPreferenceEditor.putInt("step count", steps)
+        sharedPreferenceEditor.commit()
+
+        countDistance()
+        //val value = sharedPreference.getInt("step count", 0)
+        //Log.d("steps from shared preferences", value.toString())
+
+        //Toast.makeText(context, "steps taken: $value", Toast.LENGTH_LONG).show()
+        initialSteps = -1
+    }
+
+    private fun countDistance() {
+        distance = stepLength.times(steps.toFloat())
+        sharedPreferenceEditor.putFloat("distance moved", distance)
+        sharedPreferenceEditor.commit()
+    }
+
     fun revealSeekers() {
         Log.d("powerups", "reveal seekers")
         canSeeSeeker.value = true
@@ -1193,69 +1269,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 //            }
             canSeeSeeker.value = false
         }
-    //Variables and functions for the step counter
-    private var steps = 0
-    private var distance = 0.0F
-    private var running  = false
-    private val stepLength = 0.78F
-    //private val context = application
-    private var initialSteps = -1
-    private val sensorManager: SensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    val stepCounterSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-    private val sharedPreference: SharedPreferences =  application.getSharedPreferences("statistics",Context.MODE_PRIVATE)
-    private var sharedPreferenceEditor: SharedPreferences.Editor = sharedPreference.edit()
-
-    //https://www.geeksforgeeks.org/proximity-sensor-in-android-app-using-jetpack-compose/
-    private val sensorEventListener = object: SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent) {
-            if(event.sensor == stepCounterSensor){
-                if(running == true){
-                    event.values.firstOrNull()?.toInt()?.let { newSteps ->
-                        if (initialSteps == -1) {
-                            initialSteps = newSteps
-                        }
-                        val currentSteps = newSteps.minus(initialSteps)
-                        steps = currentSteps
-                        Log.d("steps", steps.toString())
-                    }
-                }
-            }
-        }
-        override fun onAccuracyChanged(sensor: Sensor?, p1: Int) {
-            Log.d(sensor.toString(), p1.toString())
-        }
-    }
-
-    fun startStepCounter(){
-        running=true
-        sensorManager.registerListener(
-            sensorEventListener,
-            stepCounterSensor,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
-    }
-
-    fun stopStepCounter(){
-        running=false
-        sensorManager.unregisterListener(sensorEventListener)
-        sharedPreferenceEditor.putInt("step count", steps)
-        sharedPreferenceEditor.commit()
-
-        countDistance()
-        //val value = sharedPreference.getInt("step count", 0)
-        //Log.d("steps from shared preferences", value.toString())
-
-        //Toast.makeText(context, "steps taken: $value", Toast.LENGTH_LONG).show()
-        initialSteps = -1
-    }
-    private fun countDistance(){
-        distance = stepLength.times(steps.toFloat())
-        sharedPreferenceEditor.putFloat("distance moved", distance)
-        sharedPreferenceEditor.commit()
-    }
-
-}
-
     }
 
     fun activateInvisibility() {
@@ -1269,5 +1282,5 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     fun deployDecoy() {
         Log.d("powerups", "deploying decoy")
     }
-
 }
+
