@@ -39,35 +39,38 @@ fun GameEndScreen(
     val timeAsSeeker by vm.timeAsSeeker.observeAsState()
     val timeSurvived by vm.timeSurvived.observeAsState()
 
-
     Column(
-        verticalArrangement = Arrangement.SpaceEvenly,
+        verticalArrangement = Arrangement.SpaceAround,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .padding(30.dp)
             .fillMaxSize(),
     ) {
+        Spacer(modifier = Modifier.height(30.dp))
         Text(text = "Game over!", fontSize = 32.sp, fontWeight = FontWeight.Bold)
         Card() {
-            Column(modifier = Modifier
-                .padding(20.dp)) {
-                Text("Steps taken: $steps")
-                Text("Distance walked: $distance")
-                Text("Time as seeker: $timeAsSeeker")
-                Text("Time survived: $timeSurvived")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                .padding(30.dp)) {
+                Text("STATISTICS", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(5.dp))
+                Text("Steps taken: $steps", fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(5.dp))
+                Text("Distance walked: $distance", fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(5.dp))
+                Text("Your time as seeker: $timeAsSeeker", fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(5.dp))
+                Text("Your time in hiding: $timeSurvived", fontSize = 18.sp)
             }
         }
-        /*
-        Button(onClick = { navController.navigate(NavRoutes.Heatmap.route + "/$gameId") }) {
-            Text("Back to the game")
-        }
-        Button(onClick = { navController.navigate(NavRoutes.StartGame.route) }) {
-            Text("Start a new game")
-        }*/
         CustomButton(text = "Start a new game") {
-            navController.navigate(NavRoutes.StartGame.route + "/$gameId")
+            navController.navigate(NavRoutes.StartGame.route)
         }
+        Spacer(modifier = Modifier.height(30.dp))
     }
+
 }
 
 
