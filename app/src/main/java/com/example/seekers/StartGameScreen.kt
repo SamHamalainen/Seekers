@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -213,25 +214,19 @@ fun LogOutDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
+
 @OptIn(ExperimentalPagerApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun TutorialDialog(onDismiss: () -> Unit) {
-    val screenHeight = LocalConfiguration.current.screenHeightDp * .9
-    val screenWidth = LocalConfiguration.current.screenWidthDp * .9
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Powder)) {
+        Box(Modifier.fillMaxSize().background(Powder)) {
             Column(
                 Modifier
                     .background(Powder)
                     .fillMaxSize()) {
                 val pagerState = rememberPagerState()
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -245,11 +240,9 @@ fun TutorialDialog(onDismiss: () -> Unit) {
                     )
                 }
 
-                // Display 10 items
                 HorizontalPager(
-                    count = 5,
+                    count = 8,
                     state = pagerState,
-                    // contentPadding to show previous/next pages slightly
                     contentPadding = PaddingValues(horizontal = 32.dp),
                     modifier = Modifier
                         .weight(1f)
@@ -276,6 +269,13 @@ fun TutorialDialog(onDismiss: () -> Unit) {
 
 }
 
+@Composable
+internal fun PagerSampleItemText(text: String) {
+    Text(text = text,
+        modifier = Modifier.padding(5.dp),
+        fontSize = 18.sp,
+        textAlign = TextAlign.Center)
+}
 
 @Composable
 internal fun PagerSampleItem(
@@ -283,71 +283,134 @@ internal fun PagerSampleItem(
     modifier: Modifier = Modifier,
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp
-    if(page == 0) {
-        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Create a lobby to host your own game as the Seeker, and share the QR code for all your friends!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial1),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center,
-                modifier = Modifier.height((screenHeight*0.5).dp),
-            )
-            Text(text = "Or join a lobby of a friend with a QR code and get ready to hide!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
+    val screenWidth = LocalConfiguration.current.screenWidthDp
 
-        }
-    } else if(page == 1) {
-        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Remember to pick a funny nickname so your friends can recognize you!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial2_1),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
-            Text(text = "And most importantly, a cute avatar", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial2_2),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
-        }
-    } else if(page == 2) {
-        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Set the rules for your game", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial3),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center,
-                modifier = Modifier.height((screenHeight*0.5).dp),
+    when (page) {
+        0 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "Create a lobby to host your own game as the Seeker, and share the QR code for all your friends!")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial1),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.height((screenHeight*0.5).dp),
                 )
-            Text(text = "And don't forget to define the play area before creating the lobby!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
+                PagerSampleItemText(text = "Or join a lobby of a friend with a QR code and get ready to hide!")
 
+            }
         }
-    } else if(page == 3) {
-        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Setting the play area is simple", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial4),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center,
-                modifier = Modifier.height((screenHeight*0.5).dp),
+        1 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "Remember to pick a funny nickname so your friends can recognize you!")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial2_1),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center
                 )
-            Text(text = "Just move the camera to a favorable position, set the radius with the vertical slider and you're good to go!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
+                PagerSampleItemText(text = "And most importantly, a cute avatar")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial2_2),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center
+                )
+            }
         }
-    } else if(page == 4) {
-        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "While waiting for your friends, open up the QR code for them to scan from your phone", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial5_1),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
-            Text(text = "In case you want to change the rules, here's the option to do that!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
-            Image(
-                painter = painterResource(id = R.drawable.tutorial5_3),
-                contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
-            Text(text = "Now start the game and off you go, hide quickly!", modifier = Modifier.padding(5.dp), fontSize = 18.sp)
+        2 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "Set the rules for your game")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial3),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.height((screenHeight*0.5).dp),
+                )
+                PagerSampleItemText(text = "And don't forget to define the play area before creating the lobby!")
+
+            }
+        }
+        3 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "Setting the play area is simple")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial4),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.height((screenHeight*0.5).dp),
+                )
+                PagerSampleItemText(text = "Just move the camera to a favorable position, set the radius with the vertical slider and you're good to go!")
+            }
+        }
+        4 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "While waiting for your friends, open up the QR code for them to scan from your phone")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial5_1),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center
+                )
+                PagerSampleItemText(text = "In case you want to change the rules, here's the option to do that!")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial5_3),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center
+                )
+                PagerSampleItemText(text = "Now start the game and off you go, hide quickly!")
+            }
+        }
+        5 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "Your best friend while playing the game will be the bottom drawer - providing you with helpful tools and abilities")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial6_1),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center
+                )
+                Spacer(Modifier.height(30.dp))
+                PagerSampleItemText(text = "To keep up with the game's progression, you will be able to see the players left hiding, duration left and notifications of events at the top of your screen")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial6_2),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.width((screenWidth*0.8).dp)
+                )
+
+            }
+        }
+        6 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "If you're hiding, you will have the option to use 4 different abilities to help you in the game - press the magic wand to see them!")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial6_3),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.width((screenWidth*0.8).dp)
+                )
+                PagerSampleItemText(text = "Or in the case of a seeker, you will have the option to use a radar, which scans for nearby players that are hiding!")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial6_4),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.width((screenWidth*0.8).dp)
+                )
+                PagerSampleItemText(text = "Other options in the bottom drawer include a QR code / scanner for when you either find someone or you get found yourself, a list of players in the game and an option to leave the game")
+            }
+        }
+        7 -> {
+            Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                PagerSampleItemText(text = "REVEAL SEEKERS shows seekers' locations on your map for 10 seconds\n" +
+                        "\n" +
+                        "INVISIBILITY hides your position on the seekers' maps for 15 seconds\n")
+                Image(
+                    painter = painterResource(id = R.drawable.tutorial6_5),
+                    contentDescription = "tutorial",
+                    alignment = Alignment.Center,
+                    modifier = Modifier.width((screenWidth*0.8).dp)
+                )
+                PagerSampleItemText(text = "JAMMER blocks seekers' screens for 10 seconds\n" +
+                        "\n" +
+                        "DECOY freezes your location for 15 seconds")
+            }
         }
     }
 }
+
