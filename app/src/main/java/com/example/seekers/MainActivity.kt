@@ -217,6 +217,16 @@ fun MyAppNavHost() {
             val gameId = it.arguments!!.getString("gameId")!!
             HeatMapScreen(mapControl = true, navController = navController, gameId = gameId)
         }
+        //Game end screen
+        composable(
+            NavRoutes.EndGame.route + "/{gameId}",
+            arguments = listOf(
+                navArgument("gameId") { type = NavType.StringType },
+            )
+        ) {
+            val gameId = it.arguments!!.getString("gameId")!!
+            GameEndScreen(navController = navController, gameId = gameId)
+        }
     }
 }
 
