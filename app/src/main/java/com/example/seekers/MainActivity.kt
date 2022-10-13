@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
 
     private val REQ_ONE_TAP = 2  // Can be any integer unique to the Activity
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -320,9 +321,8 @@ fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavCont
                 LobbyStatus.ACTIVE.ordinal -> {
                     navController.navigate(NavRoutes.Heatmap.route + "/$gameId")
                 }
-                //replace with endGameScreen
-                else -> {
-                    navController.navigate(NavRoutes.StartGame.route)
+                LobbyStatus.FINISHED.ordinal -> {
+                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                 }
             }
         }

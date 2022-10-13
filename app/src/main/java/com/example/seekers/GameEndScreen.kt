@@ -5,6 +5,7 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card
 import androidx.compose.material.Text
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.CustomButton
@@ -42,6 +44,7 @@ fun GameEndScreen(
     val timeAsSeeker by vm.timeAsSeeker.observeAsState()
     val timeSurvived by vm.timeSurvived.observeAsState()
     val players by vm.players.observeAsState()
+    val playersFoundByMe by vm.playersFoundByMe.observeAsState()
 
     Column(
         verticalArrangement = Arrangement.SpaceAround,
@@ -54,7 +57,7 @@ fun GameEndScreen(
         Text(text = "Game over!", fontSize = 35.sp, fontWeight = FontWeight.Bold)
         Card(elevation = 10.dp) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+                horizontalAlignment = Alignment.Start,
                 modifier = Modifier
                     .padding(30.dp)
             ) {
@@ -72,29 +75,24 @@ fun GameEndScreen(
                         }
                     val foundAmount = total.minus(hidingAmount)
 
-                    Text(
-                        text = "Players found: $foundAmount",
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(5.dp))
-                    Text(
-                        text = "Players hidden: $hidingAmount",
-                        fontSize = 16.sp
-                    )
-                }
-                Spacer(modifier = Modifier.height(5.dp))
-                Text("Steps taken: $steps", fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(5.dp))
-                Text("Distance walked: $distance meters", fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(5.dp))
-                Text("Your time as seeker: $timeAsSeeker minutes", fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(5.dp))
-                if (timeSurvived != null) {
-                    if (timeSurvived!! >= 0) {
-                        Text("Your time in hiding: $timeSurvived minutes", fontSize = 16.sp)
-                    } else {
-                        Text("Your time in hiding: 0 minutes", fontSize = 16.sp)
-                    }
+//                    statRow(
+//                        text = "Players found by me: $playersFoundByMe",
+//                        fontSize = 16.sp
+//                    )
+//                    statRow(
+//                        text = "Players hidden",
+//                        value = hidingAmount.toString()
+//                    )
+//                }
+//                statRow("Steps taken: $steps", fontSize = 16.sp)
+//                statRow("Distance walked: $distance meters", fontSize = 16.sp)
+//                statRow("Your time as seeker: $timeAsSeeker minutes", fontSize = 16.sp)
+//                if (timeSurvived != null) {
+//                    if (timeSurvived!! >= 0) {
+//                        statRow("Your time in hiding: $timeSurvived minutes", fontSize = 16.sp)
+//                    } else {
+//                        statRow("Your time in hiding: 0 minutes", fontSize = 16.sp)
+//                    }
                 }
             }
         }
@@ -103,7 +101,20 @@ fun GameEndScreen(
         }
         Spacer(modifier = Modifier.height(20.dp))
     }
+    BackHandler(enabled = false) {
 
+    }
+
+}
+
+@Composable
+fun statRow(text: String, value: String) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.padding(5.dp)) {
+        Text(text = text)
+        Box(modifier = Modifier.width(100.dp), contentAlignment = Alignment.CenterStart) {
+            Text(text = value)
+        }
+    }
 }
 
 
@@ -118,6 +129,11 @@ class GameEndViewModel(application: Application) : AndroidViewModel(application)
     val steps = MutableLiveData(0)
     val distance = MutableLiveData(0.0F)
     val players = MutableLiveData<List<Player>>()
+    val playersFoundByMe = Transformations.map(players) { players ->
+        players.count {
+            it.foundBy == FirebaseHelper.uid!!
+        }
+    }
 
     fun getTimeAsSeeker(gameId: String, playerId: String) {
         FirebaseHelper.getLobby(gameId).get().addOnSuccessListener { documentSnapshot ->

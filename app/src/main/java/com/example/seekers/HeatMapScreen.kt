@@ -199,16 +199,14 @@ fun HeatMapScreen(
                     vm.startStepCounter()
                 }
                 LobbyStatus.FINISHED.ordinal -> {
-                    object: CountDownTimer(60*1000, 1000) {
+                    object : CountDownTimer(60 * 1000, 1000) {
                         override fun onTick(p0: Long) {
                             lobbyEndCountdown = p0.div(1000).toInt()
                         }
+
                         override fun onFinish() {
-                            launch {
-                                delay(1000)
-                                vm.endLobby(context = context)
-                                navController.navigate(NavRoutes.EndGame.route + "/$gameId")
-                            }
+                            vm.endLobby(context = context)
+                            navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                         }
                     }.start()
                 }
@@ -464,7 +462,21 @@ fun HeatMapScreen(
                             Icon(Icons.Filled.Dashboard, "", modifier = Modifier.size(38.dp))
                         }
                     } else {
-                        Text(text = secondsToText(lobbyEndCountdown))
+                        Card(
+                            backgroundColor = Color.White,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .clickable {
+                                    vm.endLobby(context)
+                                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
+                                }
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = "The game will soon end")
+                                Text(text = "Press to skip")
+                                Text(text = secondsToText(lobbyEndCountdown))
+                            }
+                        }
                     }
                 },
             ) {
@@ -517,7 +529,7 @@ fun HeatMapScreen(
                                             )
                                             Spacer(Modifier.width(2.dp))
                                             Text(
-                                                text = "$hidingAmount/$total",
+                                                text = "$hidingAmount/${total - 1}",
                                                 color = Raisin,
                                                 fontSize = 16.sp
                                             )
@@ -566,7 +578,11 @@ fun HeatMapScreen(
                             if (showPlayerFound) {
                                 PlayerFoundDialog(playerFound = playerFound, onCancel = {
                                     val nickname = playerFound?.nickname
-                                    vm.addFoundNews(gameId, nickname.toString(), playerFound?.playerId.toString())
+                                    vm.addFoundNews(
+                                        gameId,
+                                        nickname.toString(),
+                                        playerFound?.playerId.toString()
+                                    )
                                     playerFound = null
                                     showPlayerFound = false
                                 }) {
@@ -733,52 +749,51 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
 fun NewsItem(news: News, gameId: String) {
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     LaunchedEffect(Unit) {
-        val ONE_MEGABYTE: Long = 1024 * 1024
-        FirebaseHelper.getSelfieImage(gameId = gameId, news.picId)
-            .getBytes(ONE_MEGABYTE)
-            .addOnSuccessListener {
-                val retrievedBitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-                bitmap = retrievedBitmap
-            }
+        if (news.picId.isNotBlank()) {
+            val ONE_MEGABYTE: Long = 1024 * 1024
+            FirebaseHelper.getSelfieImage(gameId = gameId, news.picId)
+                .getBytes(ONE_MEGABYTE)
+                .addOnSuccessListener {
+                    val retrievedBitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+                    bitmap = retrievedBitmap
+                }
+        }
     }
-    bitmap?.let {
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            backgroundColor = Color.White,
-            elevation = 5.dp,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (news.picId.isNotBlank()) {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = "selfie",
-                        modifier = Modifier
-                            .aspectRatio(it.width.toFloat() / it.height)
-                            .fillMaxWidth()
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = news.text)
-                    Text(
-                        text = "${timeStampToTimeString(news.timestamp)}",
-                        style = MaterialTheme.typography.subtitle1,
-                        modifier = Modifier
-                            .align(
-                                Alignment.TopEnd
-                            )
-                            .padding(4.dp)
-                    )
-                }
 
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        backgroundColor = Color.White,
+        elevation = 5.dp,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            bitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = "selfie",
+                    modifier = Modifier
+                        .aspectRatio(it.width.toFloat() / it.height)
+                        .fillMaxWidth()
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = news.text)
+                Text(
+                    text = "${timeStampToTimeString(news.timestamp)}",
+                    style = MaterialTheme.typography.subtitle1,
+                    modifier = Modifier
+                        .align(
+                            Alignment.TopEnd
+                        )
+                        .padding(4.dp)
+                )
             }
         }
-
     }
 }
 
@@ -837,7 +852,10 @@ fun SendSelfieDialog(
     sendPic: () -> Unit,
     takeNew: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+    ) {
         Card(backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1194,7 +1212,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         GameService.stop(
             context = context,
         )
-        unregisterReceiver(context)
+//        unregisterReceiver(context)
     }
 
     //Variables and functions for the step counter
