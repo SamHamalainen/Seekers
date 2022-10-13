@@ -3,6 +3,9 @@ package com.example.seekers.general
 import android.app.Activity
 import android.content.Context
 import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.Paint
 import android.util.Log
 import android.util.Size
 import android.view.WindowManager
@@ -21,10 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource

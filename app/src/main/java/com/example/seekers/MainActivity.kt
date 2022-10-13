@@ -2,6 +2,7 @@ package com.example.seekers
 
 import android.content.*
 import android.content.ContentValues.TAG
+import android.os.Build
 
 import android.os.Bundle
 import android.util.Log
@@ -32,6 +33,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -44,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.seekers.general.isEmailValid
 import com.example.seekers.general.isPasswordValid
@@ -107,6 +112,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun MyAppNavHost(permissionVM: PermissionsViewModel = viewModel()) {
 
@@ -248,6 +254,7 @@ fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavCont
     val gameId by vm.currentGameId.observeAsState()
     val userIsInUsers by vm.userIsInUsers.observeAsState()
     var loading by remember { mutableStateOf(true) }
+    val height = LocalConfiguration.current.screenHeightDp
 
     val launcher = googleRememberFirebaseAuthLauncher(
         onAuthComplete = {
@@ -263,7 +270,7 @@ fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavCont
     LaunchedEffect(Unit) {
         vm.setUser(vm.fireBaseAuth.currentUser)
         launch(Dispatchers.Default) {
-            delay(1000)
+            delay(3000)
             loading = false
         }
     }
@@ -334,12 +341,20 @@ fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavCont
             )
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    strokeWidth = 5.dp,
-                    color = MaterialTheme.colors.primary,
-                    modifier = Modifier
-                        .size(100.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.seekers_ver3),
+                        contentDescription = "seekers",
+                        modifier = Modifier.height((height * 0.2).dp)
+                    )
+                    CircularProgressIndicator(
+                        strokeWidth = 5.dp,
+                        color = MaterialTheme.colors.primary,
+                        modifier = Modifier
+                            .size(100.dp)
+                    )
+                }
+
             }
         }
     }
