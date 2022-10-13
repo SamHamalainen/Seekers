@@ -48,7 +48,7 @@ fun GameEndScreen(
     ) {
         Spacer(modifier = Modifier.height(20.dp))
         Text(text = "Game over!", fontSize = 35.sp, fontWeight = FontWeight.Bold)
-        Card() {
+        Card(elevation = 10.dp) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
