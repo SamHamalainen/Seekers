@@ -135,7 +135,7 @@ object FirebaseHelper {
                 Log.d(TAG, "sendSelfie: picture uploaded ($playerId)")
                 val news = News(
                     picId = playerId,
-                    text = "$nickname was caught!",
+                    text = "$nickname was found!",
                     timestamp = Timestamp.now()
                 )
                 addFoundNews(news = news, gameId)
@@ -180,7 +180,8 @@ class Player(
     var distanceStatus: Int = 0,
     val asSeekerStatus: Int = 0,
     val location: GeoPoint = GeoPoint(0.0, 0.0),
-    val timeOfElimination: Timestamp = Timestamp.now()
+    val timeOfElimination: Timestamp = Timestamp(0L, 0),
+    val foundBy: String = ""
 ) : Serializable
 
 class News(

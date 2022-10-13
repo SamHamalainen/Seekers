@@ -60,6 +60,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.firestore.ktx.toObject
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
@@ -84,7 +85,6 @@ fun HeatMapScreen(
     val context = LocalContext.current
     // player
     val movingPlayers by vm.movingPlayers.observeAsState(listOf())
-    val eliminatedPlayers by vm.eliminatedPlayers.observeAsState(listOf())
     val currentSeekers by vm.currentSeekers.observeAsState(listOf())
     val players by vm.players.observeAsState()
     var playerFound: Player? by remember { mutableStateOf(null) }
@@ -119,13 +119,15 @@ fun HeatMapScreen(
     val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
 
     // Other
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
+    var lobbyEndCountdown by remember { mutableStateOf(60) }
     val isSeeker by vm.isSeeker.observeAsState()
     val playerStatus by vm.playerStatus.observeAsState()
-    var timer: CountDownTimer? by remember { mutableStateOf(null) }
-//    val timeRemaining by vm.timeRemaining.observeAsState()
     val news by vm.news.observeAsState()
     val hasNewNews by vm.hasNewNews.observeAsState(false)
     var selfie: Bitmap? by remember { mutableStateOf(null) }
+    var lobbyIsOver by remember { mutableStateOf(false) }
     val selfieLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) {
             it?.let {
@@ -133,7 +135,6 @@ fun HeatMapScreen(
                 showSendSelfie = true
             }
         }
-
     val tileProvider by remember {
         derivedStateOf {
             var provider: HeatmapTileProvider? = null
@@ -174,7 +175,17 @@ fun HeatMapScreen(
             vm.getNews(gameId)
         }
 //        vm.addMockPlayers(gameId)
+    }
 
+    LaunchedEffect(currentSeekers) {
+        currentSeekers?.let {
+            val activePlayers = players?.count { it.inGameStatus != InGameStatus.LEFT.ordinal }
+            if (currentSeekers.size == activePlayers) {
+                vm.setLobbyFinished(gameId)
+                drawerState.close()
+                lobbyIsOver = true
+            }
+        }
     }
 
     LaunchedEffect(lobbyStatus) {
@@ -183,18 +194,19 @@ fun HeatMapScreen(
                 LobbyStatus.ACTIVE.ordinal -> {
                     vm.startStepCounter()
                 }
-
                 LobbyStatus.FINISHED.ordinal -> {
-                    vm.stopStepCounter()
-                    Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
-                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
-                    /*
-
-                * Steps
-                * Time survived
-                * Time as seeker
-                * Number of players found by me
-                * */
+                    object: CountDownTimer(60*1000, 1000) {
+                        override fun onTick(p0: Long) {
+                            lobbyEndCountdown = p0.div(1000).toInt()
+                        }
+                        override fun onFinish() {
+                            launch { 
+                                delay(1000)
+                                vm.endLobby(context = context)
+                                navController.navigate(NavRoutes.EndGame.route + "/$gameId")
+                            }
+                        }
+                    }.start()
                 }
             }
         }
@@ -229,29 +241,6 @@ fun HeatMapScreen(
             }
         }
     }
-
-//    LaunchedEffect(timeRemaining) {
-//        timeRemaining?.let {
-//            vm.updateCountdown(it)
-//            timer = object : CountDownTimer(it * 1000L, 1000) {
-//                override fun onTick(p0: Long) {
-//                    if (p0 == 0L) {
-//                        vm.updateCountdown(0)
-//                        return
-//                    }
-//                    vm.updateCountdown(p0.div(1000).toInt())
-//                }
-//
-//                override fun onFinish() {}
-//            }
-//        }
-//    }
-
-//    LaunchedEffect(eliminatedPlayers) {
-//        eliminatedPlayers.find { it.playerId == FirebaseHelper.uid!! }?.let {
-//            vm.stopService(context)
-//        }
-//    }
 
     if (!initialPosSet) {
         val density = LocalDensity.current
@@ -298,10 +287,7 @@ fun HeatMapScreen(
             }
         }
     }
-
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
-
+    
     BottomDrawer(
         gesturesEnabled = false,
         drawerState = drawerState,
@@ -449,21 +435,24 @@ fun HeatMapScreen(
                 floatingActionButtonPosition = FabPosition.Center,
                 isFloatingActionButtonDocked = true,
                 floatingActionButton = {
-
-                    FloatingActionButton(
-                        elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                        modifier = Modifier.border(
-                            BorderStroke(1.dp, Raisin),
-                            shape = CircleShape
-                        ),
-                        shape = CircleShape,
-                        backgroundColor = Emerald,
-                        contentColor = Raisin,
-                        onClick = {
-                            scope.launch { drawerState.open() }
+                    if (!lobbyIsOver) {
+                        FloatingActionButton(
+                            elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                            modifier = Modifier.border(
+                                BorderStroke(1.dp, Raisin),
+                                shape = CircleShape
+                            ),
+                            shape = CircleShape,
+                            backgroundColor = Emerald,
+                            contentColor = Raisin,
+                            onClick = {
+                                scope.launch { drawerState.open() }
+                            }
+                        ) {
+                            Icon(Icons.Filled.Dashboard, "", modifier = Modifier.size(38.dp))
                         }
-                    ) {
-                        Icon(Icons.Filled.Dashboard, "", modifier = Modifier.size(38.dp))
+                    } else {
+                        Text(text = secondsToText(lobbyEndCountdown))
                     }
                 },
             ) {
@@ -532,8 +521,6 @@ fun HeatMapScreen(
                                             vm.hasNewNews.value = false
                                         }, hasNew = hasNewNews)
                                     }
-
-
                                 }
                             }
 
@@ -561,6 +548,8 @@ fun HeatMapScreen(
 
                             if (showPlayerFound) {
                                 PlayerFoundDialog(playerFound = playerFound, onCancel = {
+                                    val nickname = playerFound?.nickname
+                                    vm.addFoundNews(gameId, nickname.toString())
                                     playerFound = null
                                     showPlayerFound = false
                                 }) {
@@ -671,9 +660,7 @@ fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boole
                     .align(
                         Alignment.TopEnd
                     )
-            ) {
-
-            }
+            ) {}
         }
     }
 }
@@ -705,7 +692,6 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
 
         }
     }
-
 }
 
 @Composable
@@ -813,7 +799,7 @@ fun SendSelfieDialog(
     sendPic: () -> Unit,
     takeNew: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
         Card(backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -883,14 +869,8 @@ fun GameTimer(vm: HeatMapViewModel) {
 }
 
 class HeatMapViewModel(application: Application) : AndroidViewModel(application) {
-    val TAG = "heatMapVM"
-
     companion object {
-        val locationRequest: LocationRequest = LocationRequest.create().apply {
-            interval = 10 * 1000
-            isWaitForAccurateLocation = false
-            priority = Priority.PRIORITY_HIGH_ACCURACY
-        }
+        val TAG = "heatMapVM"
     }
 
     var newsCount = 0
@@ -908,7 +888,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         LatLng(it.center.latitude, it.center.longitude)
     }
 
-    //    val timeRemaining = MutableLiveData<Int>()
     val players = MutableLiveData<List<Player>>()
     val currentSeekers = MutableLiveData<List<Player>>()
     val canSeeSeeker = MutableLiveData<Boolean>()
@@ -1040,21 +1019,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         isSeeker.value = newVal
     }
 
-//    fun getTime(gameId: String) {
-//        val now = Timestamp.now().toDate().time.div(1000)
-//        firestore.getLobby(gameId = gameId).get()
-//            .addOnSuccessListener {
-//                val lobby = it.toObject(Lobby::class.java)
-//                lobby?.let {
-//                    val startTime = lobby.startTime.toDate().time / 1000
-//                    val countdown = lobby.countdown
-//                    val timeLimit = lobby.timeLimit * 60
-//                    val gameEndTime = (startTime + countdown + timeLimit)
-//                    timeRemaining.postValue(gameEndTime.minus(now).toInt() + 1)
-//                }
-//            }
-//    }
-
     fun updateCountdown(newVal: Int) {
         countdown.value = newVal
     }
@@ -1088,9 +1052,15 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     fun setPlayerFound(gameId: String, playerId: String) {
         val changeMap = mapOf(
             Pair("inGameStatus", InGameStatus.ELIMINATED.ordinal),
-            Pair("timeOfElimination", Timestamp.now())
+            Pair("timeOfElimination", Timestamp.now()),
+            Pair("foundBy", firestore.uid!!)
         )
         firestore.updatePlayer(changeMap, playerId, gameId)
+    }
+
+    fun addFoundNews(gameId: String, nickname: String) {
+        val news = News("", "$nickname was found!", Timestamp.now())
+        firestore.addFoundNews(news, gameId)
     }
 
     fun sendSelfie(foundPlayerId: String, gameId: String, selfie: Bitmap, nickname: String) {
@@ -1109,6 +1079,16 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                 hasNewNews.value = true
             }
         }
+    }
+
+    fun setLobbyFinished(gameId: String) {
+        val map = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
+        firestore.updateLobby(map, gameId)
+    }
+
+    fun endLobby(context: Context) {
+        stopService(context)
+        stopStepCounter()
     }
 
     fun leaveGame(gameId: String, context: Context, navController: NavHostController) {
@@ -1134,35 +1114,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     private fun unregisterReceiver(context: Context) {
         context.unregisterReceiver(countdownReceiver)
     }
-
-//    private var fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
-//    private lateinit var locationCallback2: LocationCallback
-
-//    @SuppressLint("MissingPermission")
-//    fun startLocationUpdatesForPlayer(playerId: String, gameId: String) {
-//        locationCallback2 = object : LocationCallback() {
-//            override fun onLocationResult(locationResult: LocationResult) {
-//                for (location in locationResult.locations) {
-//                    val changeMap = mapOf(
-//                        Pair("location", GeoPoint(location.latitude, location.longitude))
-//                    )
-//                    firestore.updatePlayerLocation(changeMap, playerId, gameId)
-//                }
-//            }
-//        }
-//
-//        fusedLocationClient.requestLocationUpdates(
-//            locationRequest,
-//            locationCallback2,
-//            Looper.getMainLooper()
-//        )
-//        Log.d("DEBUG", "started location updates 2")
-//    }
-
-//    fun removeLocationUpdates() {
-//        fusedLocationClient.removeLocationUpdates(locationCallback2)
-//        Log.d("DEBUG", "removed location updates")
-//    }
 
     fun startService(context: Context, gameId: String, isSeeker: Boolean) {
         GameService.start(

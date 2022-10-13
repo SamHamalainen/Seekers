@@ -82,7 +82,6 @@ fun StartGameScreen(
                         }
                     }
                 }
-                // Spacer(modifier = Modifier.height(50.dp))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
