@@ -42,6 +42,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.*
@@ -60,6 +61,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -75,38 +77,50 @@ fun HeatMapScreen(
     permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
-    val radius by vm.radius.observeAsState()
-    val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
-    val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
-    var initialPosSet by remember { mutableStateOf(false) }
-    val lobby by vm.lobby.observeAsState()
-    val lobbyStatus by vm.lobbyStatus.observeAsState()
-    var timer: CountDownTimer? by remember { mutableStateOf(null) }
-//    val timeRemaining by vm.timeRemaining.observeAsState()
-    val center by vm.center.observeAsState()
-    val isSeeker by vm.isSeeker.observeAsState()
-    val playerStatus by vm.playerStatus.observeAsState()
-    val players by vm.players.observeAsState()
-    val heatPositions by vm.heatPositions.observeAsState(listOf())
+    // player
     val movingPlayers by vm.movingPlayers.observeAsState(listOf())
     val eliminatedPlayers by vm.eliminatedPlayers.observeAsState(listOf())
-    val news by vm.news.observeAsState()
-    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    val currentSeekers by vm.currentSeekers.observeAsState(listOf())
+    val players by vm.players.observeAsState()
+    var playerFound: Player? by remember { mutableStateOf(null) }
+    val canSeeSeeker by vm.canSeeSeeker.observeAsState(false)
+
+    // lobby
+    val lobby by vm.lobby.observeAsState()
+    val lobbyStatus by vm.lobbyStatus.observeAsState()
+
+    // map
+    val radius by vm.radius.observeAsState()
+    var initialPosSet by remember { mutableStateOf(false) }
+    val center by vm.center.observeAsState()
+    val heatPositions by vm.heatPositions.observeAsState(listOf())
     val cameraPositionState = rememberCameraPositionState()
     var minZoom by remember { mutableStateOf(17F) }
-    var showRadar by remember { mutableStateOf(false) }
+    var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
+
+    // dialogs
+    var showRadarDialog by remember { mutableStateOf(false) }
     var showLeaveGameDialog by remember { mutableStateOf(false) }
     var showQR by remember { mutableStateOf(false) }
     var showQRScanner by remember { mutableStateOf(false) }
     var showPlayerFound by remember { mutableStateOf(false) }
     var showPlayerList by remember { mutableStateOf(false) }
-    var playerFound: Player? by remember { mutableStateOf(null) }
-    var selfie: Bitmap? by remember { mutableStateOf(null) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
     var showPowers by remember { mutableStateOf(false) }
-    var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
 
+    // permissions
+    val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
+    val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
+
+    // Other
+    val isSeeker by vm.isSeeker.observeAsState()
+    val playerStatus by vm.playerStatus.observeAsState()
+    var timer: CountDownTimer? by remember { mutableStateOf(null) }
+//    val timeRemaining by vm.timeRemaining.observeAsState()
+    val news by vm.news.observeAsState()
+    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    var selfie: Bitmap? by remember { mutableStateOf(null) }
     val selfieLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) {
             it?.let {
@@ -306,7 +320,7 @@ fun HeatMapScreen(
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
-                                showRadar = true
+                                showRadarDialog = true
                             },
                             content = {
                                 Column(
@@ -332,6 +346,7 @@ fun HeatMapScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
+                                        modifier = Modifier.size(24.dp),
                                         painter = painterResource(id = R.drawable.magic_wand),
                                         contentDescription = "Radar",
                                         tint = Raisin
@@ -443,6 +458,8 @@ fun HeatMapScreen(
                                 properties = props,
                                 uiSettings = uiSettings,
                                 movingPlayers = movingPlayers,
+                                seekers = currentSeekers,
+                                canSeeSeeker = canSeeSeeker,
                                 tileProvider = tileProvider,
                                 circleCoords = circleCoords
                             )
@@ -501,8 +518,8 @@ fun HeatMapScreen(
                                 }
                             }
 
-                            if (showRadar) {
-                                RadarDialog(gameId = gameId) { showRadar = false }
+                            if (showRadarDialog) {
+                                RadarDialog(gameId = gameId) { showRadarDialog = false }
                             }
 
                             if (showQR) {
@@ -577,6 +594,10 @@ fun HeatMapScreen(
                                     onDismiss = { showPlayerList = false },
                                     players = players!!
                                 )
+                            }
+
+                            if (showPowers) {
+                                PowersDialog(onDismiss = { showPowers = false }, vm = vm, gameId)
                             }
 
                             BackHandler(enabled = true) {
@@ -866,6 +887,8 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     //    val timeRemaining = MutableLiveData<Int>()
     val players = MutableLiveData<List<Player>>()
+    val currentSeekers = MutableLiveData<List<Player>>()
+    val canSeeSeeker = MutableLiveData<Boolean>()
     val playerStatus = Transformations.map(players) { list ->
         list.find { it.playerId == firestore.uid!! }?.inGameStatus
     }
@@ -982,6 +1005,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                     return@addSnapshotListener
                 }
                 val playersFetched = data.toObjects(Player::class.java)
+                val seekersFound = playersFetched.filter {
+                    it.inGameStatus == InGameStatus.SEEKER.ordinal
+                }
+                currentSeekers.postValue(seekersFound)
                 players.postValue(playersFetched)
             }
     }
@@ -1022,6 +1049,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateUser(changeMap: Map<String, Any>, uid: String) =
         firestore.updateUser(changeMap = changeMap, userId = uid)
+
+    fun updatePlayer(changeMap: Map<String, Any>, gameId: String, uid: String) {
+        firestore.updatePlayer(changeMap, uid, gameId)
+    }
 
     fun setPlayerInGameStatus(status: Int, gameId: String, playerId: String) {
         firestore.updatePlayerInGameStatus(
@@ -1123,6 +1154,43 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
             context = context,
         )
         unregisterReceiver(context)
+    }
+
+    fun revealSeekers() {
+        Log.d("powerups", "reveal seekers")
+        canSeeSeeker.value = true
+//        val changeMap = mapOf(
+//            Pair("asSeekerStatus", SeekersStatus.REVEALED.ordinal)
+//        )
+//        currentSeekers.value?.forEach {
+//            Log.d("powerups", "player: ${it.playerId}")
+//            Log.d("powerups", "game: $gameId")
+//            updatePlayer(changeMap, it.playerId, gameId)
+//        }
+        viewModelScope.launch {
+            delay(10000)
+//            val changeMap2 = mapOf(
+//                Pair("asSeekerStatus", SeekersStatus.NOT_EFFECTED.ordinal)
+//            )
+//            currentSeekers.value?.forEach{
+//                Log.d("powerups", "changed back to no visible")
+//                updatePlayer(changeMap2, it.playerId, gameId)
+//            }
+            canSeeSeeker.value = false
+        }
+
+    }
+
+    fun activateInvisibility() {
+        Log.d("powerups", "im invisible")
+    }
+
+    fun activateJammer() {
+        Log.d("powerups", "jamming seekers")
+    }
+
+    fun deployDecoy() {
+        Log.d("powerups", "deploying decoy")
     }
 
 }

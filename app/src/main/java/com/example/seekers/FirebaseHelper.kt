@@ -178,6 +178,7 @@ class Player(
     val inLobbyStatus: Int = 0,
     val inGameStatus: Int = 0,
     var distanceStatus: Int = 0,
+    val asSeekerStatus: Int = 0,
     val location: GeoPoint = GeoPoint(0.0, 0.0),
     val timeOfElimination: Timestamp = Timestamp.now()
 ) : Serializable
@@ -206,6 +207,14 @@ enum class PlayerDistance {
     WITHIN10,
     WITHIN50,
     WITHIN100
+}
+
+enum class SeekersStatus {
+    NOT_EFFECTED,
+    BLIND,
+    JAMMED,
+    REVEALED,
+    DECOYED
 }
 
 enum class LobbyStatus {

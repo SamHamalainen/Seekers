@@ -1,8 +1,14 @@
 package com.example.seekers
 
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,14 +17,16 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -114,30 +122,96 @@ fun StatusPill(inGameStatus: Int) {
     }
 }
 
-@Composable
-fun PowersDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(8.dp), backgroundColor = Powder) {
+fun makeToast(context: Context, text: String,) {
+    Toast.makeText(context,text,Toast.LENGTH_SHORT).show()
+}
 
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun PowersDialog(onDismiss: () -> Unit, vm: HeatMapViewModel, gameId: String) {
+    val context = LocalContext.current
+    val list = listOf<Power>(Power.INVISIBILITY,Power.JAMMER, Power.DECOY, Power.REVEAL)
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            backgroundColor = Powder,
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 150.dp)
+            ) {
+                items(list) { power ->
+                    PowerButton(power = power, vm, gameId)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun PowerButton(power: Power, onPress: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Card(shape = MaterialTheme.shapes.medium) {
-            Icon(painter = painterResource(id = power.icon), contentDescription = "power", modifier = Modifier.padding(16.dp))
+fun PowerButton(power: Power, vm: HeatMapViewModel, gameId: String) {
+    val icon = when (power.icon) {
+        1 -> Icons.Filled.VisibilityOff
+        3 -> Icons.Filled.DirectionsRun
+        4 -> Icons.Filled.Radar
+        else -> Icons.Filled.HelpOutline
+    }
+    val icon2 = when(power.icon) {
+        2 -> painterResource(id = R.drawable.block_radar)
+        else -> null
+    }
+
+    fun actionToDo(powerActionInt: Int) {
+        val action = when (powerActionInt) {
+            1 -> vm.activateInvisibility()
+            2 -> vm.activateJammer()
+            3 -> vm.deployDecoy()
+            4 -> vm.revealSeekers()
+            else -> {}
+    }
+        return action
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(vertical = 10.dp)
+            .clickable(
+                enabled = true,
+                onClick = { actionToDo(power.action) }
+            ),
+    ) {
+        Card(
+            shape = MaterialTheme.shapes.medium,
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp,
+            border = BorderStroke(2.dp, Color.Black),
+            modifier = Modifier.size(100.dp)
+        ) {
+            if (power.icon != 2) {
+                Icon(
+                    icon ,
+                    contentDescription = "power",
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                Icon(
+                    icon2!! ,
+                    contentDescription = "power",
+                    modifier = Modifier.padding(16.dp),
+                    tint = Color.Unspecified
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.padding(8.dp))
         Text(text = power.text)
     }
 }
 
-enum class Power(val icon: Int, val text: String, val duration: Int) {
-    INVISIBILITY(1, "Invisibility", 15),
-    JAMMER(2, "Jammer", 5),
-    DECOY(3, "Decoy", 15),
-    REVEAL(4, "Reveal seekers", 5)
+enum class Power(val icon: Int, val text: String, val duration: Int, val action: Int) {
+    INVISIBILITY(1, "Invisibility", 15, 1),
+    JAMMER(2, "Jammer", 5, 2),
+    DECOY(3, "Decoy", 15, 3),
+    REVEAL(4, "Reveal seekers", 5, 4)
 }
 
