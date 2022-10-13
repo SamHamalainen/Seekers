@@ -1,7 +1,14 @@
 package com.example.seekers
 
+import android.content.Context
 import android.media.MediaPlayer
 import android.os.CountDownTimer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.CircularProgressIndicator
@@ -13,18 +20,17 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.google.firebase.Timestamp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun CountdownScreen(
@@ -34,66 +40,78 @@ fun CountdownScreen(
 ) {
     val initialValue by vm.initialValue.observeAsState()
     val countdown by vm.countdown.observeAsState()
-    var timesUp by remember { mutableStateOf(false) }
+//    var timesUp by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var countdownTimer: CountDownTimer? by remember { mutableStateOf(null) }
-    val mediaPlayerHidingPhaseMusic: MediaPlayer = MediaPlayer.create(context, R.raw.countdown_music)
-    val mediaPlayerCountdown : MediaPlayer = MediaPlayer.create(context, R.raw.counting_down)
+//    var countdownTimer: CountDownTimer? by remember { mutableStateOf(null) }
+//    val mediaPlayerHidingPhaseMusic: MediaPlayer = MediaPlayer.create(context, R.raw.countdown_music)
+//    val mediaPlayerCountdown : MediaPlayer = MediaPlayer.create(context, R.raw.counting_down)
 
     LaunchedEffect(Unit) {
+        vm.startService(context, gameId)
         vm.getInitialValue(gameId)
-        mediaPlayerHidingPhaseMusic.start()
+//        mediaPlayerHidingPhaseMusic.start()
     }
 
-    LaunchedEffect(initialValue) {
-        initialValue?.let {
-            vm.updateCountdown(it)
-            countdownTimer = object : CountDownTimer(it * 1000L, 1000) {
-                override fun onTick(p0: Long) {
-                    if (p0 == 0L) {
-                        vm.updateCountdown(0)
-                        return
-                    }
-                    vm.updateCountdown((p0 / 1000).toInt())
-                    if((p0 / 1000).toInt() == 10) {
-                    scope.launch {
-                            mediaPlayerCountdown.start()
-                        }
-                    }
+    LaunchedEffect(countdown) {
+        countdown?.let {
+            if (it == 0) {
+                vm.stopService(context)
+                navController.navigate(NavRoutes.Heatmap.route + "/$gameId")
+            }
+        }
+    }
 
-                }
+//    LaunchedEffect(initialValue) {
+//        initialValue?.let {
+//            vm.updateCountdown(it)
+//            countdownTimer = object : CountDownTimer(it * 1000L, 1000) {
+//                override fun onTick(p0: Long) {
+//                    if (p0 == 0L) {
+//                        vm.updateCountdown(0)
+//                        return
+//                    }
+//                    vm.updateCountdown((p0 / 1000).toInt())
+//                    if((p0 / 1000).toInt() == 10) {
+//                    scope.launch {
+//                            mediaPlayerCountdown.start()
+//                        }
+//                    }
+//
+//                }
+//
+//                override fun onFinish() {
+//                    timesUp = true
+//                    scope.launch {
+//                        delay(1500)
+//                        vm.updateLobby(
+//                            mapOf(Pair("status", LobbyStatus.ACTIVE.ordinal)),
+//                            gameId
+//                        )
+//                        mediaPlayerHidingPhaseMusic.stop()
+//                        mediaPlayerCountdown.stop()
+//                        navController.navigate(NavRoutes.Heatmap.route + "/$gameId")
+//                    }
+//                }
+//            }
+//        }
+//
+//    }
 
-                override fun onFinish() {
-                    timesUp = true
-                    scope.launch {
-                        delay(1500)
-                        vm.updateLobby(
-                            mapOf(Pair("status", LobbyStatus.ACTIVE.value)),
-                            gameId
-                        )
-                        mediaPlayerHidingPhaseMusic.stop()
-                        mediaPlayerCountdown.stop()
-                        navController.navigate(NavRoutes.Heatmap.route + "/$gameId")
-                    }
+    initialValue?.let { initial ->
+        countdown?.let { cd ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(32.dp), contentAlignment = Alignment.Center
+            ) {
+                countdown?.let {
+                    CountdownTimerUI(countdown = cd, initialTime = initial)
                 }
             }
         }
-
     }
 
-    countdownTimer?.let {
-        LaunchedEffect(Unit) {
-            it.start()
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(32.dp), contentAlignment = Alignment.Center
-        ) {
-            CountdownTimerUI(countdown = countdown!!, initialTime = initialValue!!)
-        }
-    }
 }
 
 @Composable
@@ -139,36 +157,70 @@ fun convertToClock(seconds: Int): String {
 }
 
 class CountdownViewModel : ViewModel() {
+    companion object {
+        const val TAG = "COUNTDOWN_VIEW_MODEL"
+    }
     val firestore = FirebaseHelper
+
     val initialValue = MutableLiveData<Int>()
     val countdown = MutableLiveData<Int>()
+    private var countdownReceiver: BroadcastReceiver? = null
 
     fun updateCountdown(seconds: Int) {
         countdown.value = seconds
     }
-
-    fun updateLobby(changeMap: Map<String, Any>, gameId: String) =
-        firestore.updateLobby(changeMap = changeMap, gameId = gameId)
 
     fun getInitialValue(gameId: String) {
         firestore.getLobby(gameId).get()
             .addOnSuccessListener {
                 val lobby = it.toObject(Lobby::class.java)
                 lobby ?: return@addOnSuccessListener
-                val start = lobby.startTime.toDate().time / 1000
                 val countdownVal = lobby.countdown
-                val now = Timestamp.now().toDate().time / 1000
-                val remainingCountdown = start + countdownVal - now + 1
-                println("remaining $remainingCountdown")
-                initialValue.postValue(remainingCountdown.toInt())
+                if (initialValue.value == null) {
+                    initialValue.value = countdownVal
+                }
             }
     }
-}
 
-//@Preview
-//@Composable
-//fun CountdownPrev() {
-//    SeekersTheme() {
-//        CountdownScreen(seconds = 10, navController = rememberNavController())
+//    fun updateLobby(changeMap: Map<String, Any>, gameId: String) =
+//        firestore.updateLobby(changeMap = changeMap, gameId = gameId)
+
+//    fun getInitialValue(gameId: String) {
+//        firestore.getLobby(gameId).get()
+//            .addOnSuccessListener {
+//                val lobby = it.toObject(Lobby::class.java)
+//                lobby ?: return@addOnSuccessListener
+//                val start = lobby.startTime.toDate().time / 1000
+//                val countdownVal = lobby.countdown
+//                val now = Timestamp.now().toDate().time / 1000
+//                val remainingCountdown = start + countdownVal - now + 2
+//                println("remaining $remainingCountdown")
+//                initialValue.postValue(remainingCountdown.toInt())
+//            }
 //    }
-//}
+    fun startService(context: Context, gameId: String) {
+        CountdownService.start(context, gameId)
+        receiveCountdown(context)
+    }
+
+    fun stopService(context: Context) {
+        CountdownService.stop(context)
+        unregisterReceiver(context)
+    }
+
+    fun receiveCountdown(context: Context) {
+        val countdownFilter = IntentFilter()
+        countdownFilter.addAction(GameService.COUNTDOWN_TICK)
+        countdownReceiver = object : BroadcastReceiver() {
+            override fun onReceive(p0: Context?, p1: Intent?) {
+                val countdown = p1?.getIntExtra(GameService.TIME_LEFT, 0)!!
+                updateCountdown(countdown)
+            }
+        }
+        context.registerReceiver(countdownReceiver, countdownFilter)
+    }
+
+    private fun unregisterReceiver(context: Context) {
+        context.unregisterReceiver(countdownReceiver)
+    }
+}

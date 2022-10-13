@@ -1,12 +1,13 @@
 package com.example.seekers
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.os.CountDownTimer
 import android.util.Log
 import android.util.Size
@@ -14,7 +15,6 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,9 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -37,6 +34,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -54,15 +52,15 @@ import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.Mango
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.Priority
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.heatmaps.HeatmapTileProvider
-import com.google.maps.android.ktx.utils.withSphericalOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -70,24 +68,24 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
-@RequiresApi(Build.VERSION_CODES.Q)
 @SuppressLint("MissingPermission", "UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun HeatMapScreen(
     vm: HeatMapViewModel = viewModel(),
     mapControl: Boolean,
     gameId: String,
-    navController: NavHostController
+    navController: NavHostController,
+    permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
     val radius by vm.radius.observeAsState()
-    var locationAllowed by remember { mutableStateOf(false) }
-    var cameraIsAllowed by remember { mutableStateOf(false) }
+    val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
+    val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
     var initialPosSet by remember { mutableStateOf(false) }
     val lobby by vm.lobby.observeAsState()
     val lobbyStatus by vm.lobbyStatus.observeAsState()
     var timer: CountDownTimer? by remember { mutableStateOf(null) }
-    val timeRemaining by vm.timeRemaining.observeAsState()
+//    val timeRemaining by vm.timeRemaining.observeAsState()
     val center by vm.center.observeAsState()
     val isSeeker by vm.isSeeker.observeAsState()
     val playerStatus by vm.playerStatus.observeAsState()
@@ -109,16 +107,9 @@ fun HeatMapScreen(
     var selfie: Bitmap? by remember { mutableStateOf(null) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
+    var showPowers by remember { mutableStateOf(false) }
     var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
 
-    val locationPermissionLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { allowed ->
-            locationAllowed = allowed
-        }
-    val cameraPermissionLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { allowed ->
-            cameraIsAllowed = allowed
-        }
     val selfieLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) {
             it?.let {
@@ -158,27 +149,22 @@ fun HeatMapScreen(
         )
     }
     LaunchedEffect(Unit) {
+        permissionVM.checkAllPermissions(context)
+        vm.receiveCountdown(context)
         launch(Dispatchers.IO) {
             vm.getPlayers(gameId)
             vm.getLobby(gameId)
-            vm.getTime(gameId)
+//            vm.getTime(gameId)
             vm.getNews(gameId)
         }
-
 //        vm.addMockPlayers(gameId)
-        if (!locationAllowed) {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        } else {
-            locationAllowed = true
-        }
+
     }
 
     LaunchedEffect(lobbyStatus) {
         lobbyStatus?.let {
             when (it) {
-                LobbyStatus.FINISHED.value -> {
+                LobbyStatus.FINISHED.ordinal -> {
                     Toast.makeText(context, "The game has ended", Toast.LENGTH_LONG).show()
                     /*
                     * Steps
@@ -195,9 +181,9 @@ fun HeatMapScreen(
         println("playerStatus $playerStatus")
         playerStatus?.let {
             if (isSeeker == null) {
-                val thisPlayerIsSeeker = (it == InGameStatus.SEEKER.value)
+                val thisPlayerIsSeeker = (it == InGameStatus.SEEKER.ordinal)
                 vm.updateIsSeeker(thisPlayerIsSeeker)
-                if (it != InGameStatus.ELIMINATED.value) {
+                if (it != InGameStatus.ELIMINATED.ordinal) {
                     vm.startService(
                         context = context,
                         gameId = gameId,
@@ -206,10 +192,10 @@ fun HeatMapScreen(
                 }
                 return@LaunchedEffect
             }
-            if (it == InGameStatus.ELIMINATED.value) {
+            if (it == InGameStatus.ELIMINATED.ordinal) {
                 showQR = false
                 vm.stopService(context)
-                vm.setPlayerInGameStatus(InGameStatus.SEEKER.value, gameId, FirebaseHelper.uid!!)
+                vm.setPlayerInGameStatus(InGameStatus.SEEKER.ordinal, gameId, FirebaseHelper.uid!!)
                 vm.updateIsSeeker(true)
                 vm.startService(context = context, gameId = gameId, isSeeker = true)
                 Toast.makeText(context, "You are now a seeker!", Toast.LENGTH_SHORT).show()
@@ -217,22 +203,22 @@ fun HeatMapScreen(
         }
     }
 
-    LaunchedEffect(timeRemaining) {
-        timeRemaining?.let {
-            vm.updateCountdown(it)
-            timer = object : CountDownTimer(it * 1000L, 1000) {
-                override fun onTick(p0: Long) {
-                    if (p0 == 0L) {
-                        vm.updateCountdown(0)
-                        return
-                    }
-                    vm.updateCountdown(p0.div(1000).toInt())
-                }
-
-                override fun onFinish() {}
-            }
-        }
-    }
+//    LaunchedEffect(timeRemaining) {
+//        timeRemaining?.let {
+//            vm.updateCountdown(it)
+//            timer = object : CountDownTimer(it * 1000L, 1000) {
+//                override fun onTick(p0: Long) {
+//                    if (p0 == 0L) {
+//                        vm.updateCountdown(0)
+//                        return
+//                    }
+//                    vm.updateCountdown(p0.div(1000).toInt())
+//                }
+//
+//                override fun onFinish() {}
+//            }
+//        }
+//    }
 
 //    LaunchedEffect(eliminatedPlayers) {
 //        eliminatedPlayers.find { it.playerId == FirebaseHelper.uid!! }?.let {
@@ -246,7 +232,7 @@ fun HeatMapScreen(
             with(density) {
                 LocalConfiguration.current.screenWidthDp.dp.toPx()
             }
-                .times(0.7).toInt()
+                .times(0.5).toInt()
         LaunchedEffect(center) {
             lobby?.let {
                 minZoom = getBoundsZoomLevel(
@@ -319,32 +305,48 @@ fun HeatMapScreen(
                                 )
                             }
                         })
-                    IconButton(
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            showRadar = true
-                        },
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    Icons.Default.Radar,
-                                    contentDescription = "Radar",
-                                    tint = Raisin
-                                )
-                            }
-                        })
+                    if (isSeeker == true) {
+                        IconButton(
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                showRadar = true
+                            },
+                            content = {
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.Radar,
+                                        contentDescription = "Radar",
+                                        tint = Raisin
+                                    )
+                                }
+                            })
+                    } else {
+                        IconButton(
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                showPowers = true
+                            },
+                            content = {
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.magic_wand),
+                                        contentDescription = "Radar",
+                                        tint = Raisin
+                                    )
+                                }
+                            })
+                    }
+
                     IconButton(
                         onClick = {
                             scope.launch { drawerState.close() }
                             if (isSeeker == true) {
-                                if (!cameraIsAllowed) {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                } else {
-                                    cameraIsAllowed = true
-                                }
                                 if (!showQRScanner) {
                                     showQRScanner = true
                                 }
@@ -393,9 +395,7 @@ fun HeatMapScreen(
                         })
                     IconButton(
                         onClick = {
-                            vm.updateUser(mapOf(Pair("currentGameId", "")), FirebaseHelper.uid!!)
-                            vm.stopService(context)
-                            navController.navigate(NavRoutes.StartGame.route)
+                            showLeaveGameDialog = true
                         },
                         content = {
                             Column(
@@ -445,9 +445,7 @@ fun HeatMapScreen(
                                 radius = radius,
                                 properties = props,
                                 uiSettings = uiSettings,
-                                heatPositions = heatPositions,
                                 movingPlayers = movingPlayers,
-                                eliminatedPlayers = eliminatedPlayers,
                                 tileProvider = tileProvider,
                                 circleCoords = circleCoords
                             )
@@ -461,31 +459,47 @@ fun HeatMapScreen(
                                 border = BorderStroke(1.dp, Raisin),
                                 shape = RoundedCornerShape(5.dp)
                             ) {
-                                Row(
+                                Box(
                                     Modifier.padding(8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row() {
-                                        Icon(
-                                            Icons.Default.PermIdentity,
-                                            contentDescription = "",
-                                            tint = Raisin
-                                        )
-                                        PlayerCount(vm = vm)
-                                    }
-
-                                    timer?.let {
-                                        GameTimer(vm = vm)
-                                        LaunchedEffect(Unit) {
-                                            it.start()
+                                    players?.let {
+                                        val total =
+                                            it.count { player ->
+                                                player.inGameStatus != InGameStatus.LEFT.ordinal
+                                            }
+                                        val hidingAmount =
+                                            it.count { player ->
+                                                player.inGameStatus == InGameStatus.PLAYER.ordinal
+                                                        || player.inGameStatus == InGameStatus.MOVING.ordinal
+                                            }
+                                        Row(
+                                            modifier = Modifier.align(Alignment.CenterStart),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.PermIdentity,
+                                                contentDescription = "",
+                                                tint = Raisin
+                                            )
+                                            Text(
+                                                text = "$hidingAmount/$total",
+                                                color = Raisin,
+                                                fontSize = 16.sp
+                                            )
                                         }
                                     }
 
-                                    NewsButton(onClick = {
-                                        showNews = true
-                                        vm.hasNewNews.value = false
-                                    }, hasNew = hasNewNews)
+                                    Box(modifier = Modifier.align(Alignment.Center)) {
+                                        GameTimer(vm = vm)
+                                    }
+
+                                    Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                                        NewsButton(onClick = {
+                                            showNews = true
+                                            vm.hasNewNews.value = false
+                                        }, hasNew = hasNewNews)
+                                    }
+
 
                                 }
                             }
@@ -523,11 +537,11 @@ fun HeatMapScreen(
                             }
 
                             if (showLeaveGameDialog) {
-                                LeaveGameDialog(onDismissRequest = { showLeaveGameDialog = false }, onConfirm = {
-                                    vm.updateUser(mapOf(Pair("currentGameId", "")), FirebaseHelper.uid!!)
-                                    vm.stopService(context)
-                                    navController.navigate(NavRoutes.StartGame.route)
-                                })
+                                LeaveGameDialog(
+                                    onDismissRequest = { showLeaveGameDialog = false },
+                                    onConfirm = {
+                                        vm.leaveGame(gameId, context, navController)
+                                    })
                             }
 
                             selfie?.let {
@@ -562,7 +576,10 @@ fun HeatMapScreen(
                             }
 
                             if (showPlayerList && players != null) {
-                                PlayerListDialog(onDismiss = { showPlayerList = false }, players = players!!)
+                                PlayerListDialog(
+                                    onDismiss = { showPlayerList = false },
+                                    players = players!!
+                                )
                             }
 
                             BackHandler(enabled = true) {
@@ -597,17 +614,6 @@ fun RadarDialog(
 }
 
 @Composable
-fun QRButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(shape = CircleShape, elevation = 4.dp, modifier = modifier.clickable { onClick() }) {
-        Icon(
-            imageVector = Icons.Filled.QrCode,
-            contentDescription = "qr",
-            modifier = Modifier.padding(8.dp)
-        )
-    }
-}
-
-@Composable
 fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boolean) {
     Box {
         IconButton(
@@ -636,7 +642,6 @@ fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boole
             }
         }
     }
-
 }
 
 @Composable
@@ -649,7 +654,11 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
                 .fillMaxWidth(), backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "Events", style = MaterialTheme.typography.h6, modifier = Modifier.padding(vertical = 16.dp))
+                Text(
+                    text = "Events",
+                    style = MaterialTheme.typography.h6,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
                 LazyColumn(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
@@ -716,7 +725,8 @@ fun NewsItem(news: News, gameId: String) {
 }
 
 fun timeStampToTimeString(timestamp: Timestamp): String? {
-    val localDateTime = timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+    val localDateTime =
+        timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     return localDateTime.format(formatter)
 }
@@ -736,17 +746,6 @@ fun ShowMyQRDialog(onDismiss: () -> Unit) {
                 QRCodeComponent(bitmap = qrBitmap)
             }
         }
-    }
-}
-
-@Composable
-fun QRScanButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(shape = CircleShape, elevation = 4.dp, modifier = modifier.clickable { onClick() }) {
-        Icon(
-            imageVector = Icons.Filled.QrCodeScanner,
-            contentDescription = "qrScan",
-            modifier = Modifier.padding(8.dp)
-        )
     }
 }
 
@@ -835,23 +834,17 @@ fun QRScannerDialog(onDismiss: () -> Unit, onScanned: (String) -> Unit) {
 fun GameTimer(vm: HeatMapViewModel) {
     val countdown by vm.countdown.observeAsState()
     countdown?.let {
-        Row(modifier = Modifier
-            .border(BorderStroke(1.dp, Raisin))
-            .padding(2.dp)) {
+        Row(
+            modifier = Modifier
+                .border(BorderStroke(1.dp, Raisin))
+                .padding(2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Icon(Icons.Default.Alarm, contentDescription = "", tint = Raisin)
-            Text(text = secondsToText(it), color = Raisin, fontSize = 20.sp)
+            Box(modifier = Modifier.width(90.dp), contentAlignment = Alignment.Center) {
+                Text(text = secondsToText(it), color = Raisin, fontSize = 20.sp)
+            }
         }
-
-    }
-}
-
-@Composable
-fun PlayerCount(vm: HeatMapViewModel) {
-    val players by vm.players.observeAsState()
-    val eliminated by vm.eliminatedPlayers.observeAsState()
-
-    players?.let {
-        Text(text = "${it.count() - (eliminated?.count() ?: 0)}/${it.count()}", color = Raisin, fontSize = 20.sp)
     }
 }
 
@@ -880,7 +873,8 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     val center = Transformations.map(lobby) {
         LatLng(it.center.latitude, it.center.longitude)
     }
-    val timeRemaining = MutableLiveData<Int>()
+
+    //    val timeRemaining = MutableLiveData<Int>()
     val players = MutableLiveData<List<Player>>()
     val playerStatus = Transformations.map(players) { list ->
         list.find { it.playerId == firestore.uid!! }?.inGameStatus
@@ -890,101 +884,99 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         players.filter { it.playerId != FirebaseHelper.uid!! }
     }
     val heatPositions = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.PLAYER.value }
+        players.filter { it.inGameStatus == InGameStatus.PLAYER.ordinal }
             .map { LatLng(it.location.latitude, it.location.longitude) }
     }
     val movingPlayers = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.MOVING.value }
+        players.filter { it.inGameStatus == InGameStatus.MOVING.ordinal }
     }
     val eliminatedPlayers = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.ELIMINATED.value }
-    }
-    val statuses = Transformations.map(players) { players ->
-        players.map { it.inGameStatus }
+        players.filter { it.inGameStatus == InGameStatus.ELIMINATED.ordinal }
     }
     val countdown = MutableLiveData<Int>()
+    var countdownReceiver: BroadcastReceiver? = null
 
     fun addMockPlayers(gameId: String) {
         val mockPlayers = listOf(
             Player(
                 nickname = "player 1",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.value,
+                inGameStatus = InGameStatus.PLAYER.ordinal,
                 location = GeoPoint(60.22338389989929, 24.756749169655805),
                 playerId = "player 1",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
             Player(
                 nickname = "player 2",
                 avatarId = 5,
-                inGameStatus = InGameStatus.MOVING.value,
+                inGameStatus = InGameStatus.MOVING.ordinal,
                 location = GeoPoint(60.22374887627318, 24.759200708558442),
                 playerId = "player 2",
-                distanceStatus = PlayerDistance.WITHIN100.value
+                distanceStatus = PlayerDistance.WITHIN100.ordinal
             ),
             Player(
                 nickname = "player 3",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.value,
+                inGameStatus = InGameStatus.PLAYER.ordinal,
                 location = GeoPoint(60.223032239987354, 24.758830563735074),
                 playerId = "player 3",
-                distanceStatus = PlayerDistance.WITHIN10.value
+                distanceStatus = PlayerDistance.WITHIN10.ordinal
             ),
             Player(
                 nickname = "player 4",
                 avatarId = 1,
-                inGameStatus = InGameStatus.MOVING.value,
+                inGameStatus = InGameStatus.MOVING.ordinal,
                 location = GeoPoint(60.224550744400226, 24.756561415035257),
                 playerId = "player 4",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
             Player(
                 nickname = "player 5",
                 avatarId = 1,
-                inGameStatus = InGameStatus.ELIMINATED.value,
+                inGameStatus = InGameStatus.ELIMINATED.ordinal,
                 location = GeoPoint(60.223405212500005, 24.75958158221728),
                 playerId = "player 5",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
             Player(
                 nickname = "player 6",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.value,
+                inGameStatus = InGameStatus.PLAYER.ordinal,
                 location = GeoPoint(60.223841983003645, 24.759626485065098),
                 playerId = "player 6",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
             Player(
                 nickname = "player 7",
                 avatarId = 5,
-                inGameStatus = InGameStatus.MOVING.value,
+                inGameStatus = InGameStatus.MOVING.ordinal,
                 location = GeoPoint(60.22357557804847, 24.756681419911455),
                 playerId = "player 7",
-                distanceStatus = PlayerDistance.WITHIN100.value
+                distanceStatus = PlayerDistance.WITHIN100.ordinal
             ),
             Player(
                 nickname = "player 8",
                 avatarId = 1,
-                inGameStatus = InGameStatus.PLAYER.value,
+                inGameStatus = InGameStatus.PLAYER.ordinal,
                 location = GeoPoint(60.22314399742664, 24.757781125478843),
                 playerId = "player 8",
-                distanceStatus = PlayerDistance.WITHIN10.value
+                distanceStatus = PlayerDistance.WITHIN10.ordinal
             ),
             Player(
                 nickname = "player 9",
                 avatarId = 1,
-                inGameStatus = InGameStatus.MOVING.value,
+                inGameStatus = InGameStatus.MOVING.ordinal,
                 location = GeoPoint(60.22311735646131, 24.759814239674167),
                 playerId = "player 9",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
             Player(
                 nickname = "player 10",
                 avatarId = 1,
-                inGameStatus = InGameStatus.ELIMINATED.value,
+                inGameStatus = InGameStatus.ELIMINATED.ordinal,
                 location = GeoPoint(60.223405212500005, 24.75958158221728),
                 playerId = "player 10",
-                distanceStatus = PlayerDistance.WITHIN50.value
+                distanceStatus = PlayerDistance.WITHIN50.ordinal
             ),
         )
         mockPlayers.forEach {
@@ -1008,20 +1000,20 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         isSeeker.value = newVal
     }
 
-    fun getTime(gameId: String) {
-        val now = Timestamp.now().toDate().time.div(1000)
-        firestore.getLobby(gameId = gameId).get()
-            .addOnSuccessListener {
-                val lobby = it.toObject(Lobby::class.java)
-                lobby?.let {
-                    val startTime = lobby.startTime.toDate().time / 1000
-                    val countdown = lobby.countdown
-                    val timeLimit = lobby.timeLimit * 60
-                    val gameEndTime = (startTime + countdown + timeLimit)
-                    timeRemaining.postValue(gameEndTime.minus(now).toInt() + 1)
-                }
-            }
-    }
+//    fun getTime(gameId: String) {
+//        val now = Timestamp.now().toDate().time.div(1000)
+//        firestore.getLobby(gameId = gameId).get()
+//            .addOnSuccessListener {
+//                val lobby = it.toObject(Lobby::class.java)
+//                lobby?.let {
+//                    val startTime = lobby.startTime.toDate().time / 1000
+//                    val countdown = lobby.countdown
+//                    val timeLimit = lobby.timeLimit * 60
+//                    val gameEndTime = (startTime + countdown + timeLimit)
+//                    timeRemaining.postValue(gameEndTime.minus(now).toInt() + 1)
+//                }
+//            }
+//    }
 
     fun updateCountdown(newVal: Int) {
         countdown.value = newVal
@@ -1041,10 +1033,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     fun updateUser(changeMap: Map<String, Any>, uid: String) =
         firestore.updateUser(changeMap = changeMap, userId = uid)
 
-    fun removePlayerFromLobby(gameId: String, playerId: String) {
-        firestore.removePlayer(gameId, playerId)
-    }
-
     fun setPlayerInGameStatus(status: Int, gameId: String, playerId: String) {
         firestore.updatePlayerInGameStatus(
             inGameStatus = status,
@@ -1055,7 +1043,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun setPlayerFound(gameId: String, playerId: String) {
         val changeMap = mapOf(
-            Pair("inGameStatus", InGameStatus.ELIMINATED.value),
+            Pair("inGameStatus", InGameStatus.ELIMINATED.ordinal),
             Pair("timeOfElimination", Timestamp.now())
         )
         firestore.updatePlayer(changeMap, playerId, gameId)
@@ -1068,7 +1056,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     fun getNews(gameId: String) {
         firestore.getNews(gameId).addSnapshotListener { data, e ->
             data ?: kotlin.run {
-                Log.e(ForegroundService.TAG, "listenForNews: ", e)
+                Log.e(GameService.TAG, "listenForNews: ", e)
                 return@addSnapshotListener
             }
             val newsList = data.toObjects(News::class.java)
@@ -1079,6 +1067,29 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun leaveGame(gameId: String, context: Context, navController: NavHostController) {
+        updateUser(mapOf(Pair("currentGameId", "")), FirebaseHelper.uid!!)
+        setPlayerInGameStatus(InGameStatus.LEFT.ordinal, gameId, firestore.uid!!)
+        stopService(context)
+        navController.navigate(NavRoutes.StartGame.route)
+    }
+
+    fun receiveCountdown(context: Context) {
+        val countdownFilter = IntentFilter()
+        countdownFilter.addAction(GameService.COUNTDOWN_TICK)
+        countdownReceiver = object : BroadcastReceiver() {
+            override fun onReceive(p0: Context?, p1: Intent?) {
+                val countdown = p1?.getIntExtra(GameService.TIME_LEFT, 0)!!
+                updateCountdown(countdown)
+            }
+        }
+        context.registerReceiver(countdownReceiver, countdownFilter)
+        println("registered")
+    }
+
+    private fun unregisterReceiver(context: Context) {
+        context.unregisterReceiver(countdownReceiver)
+    }
 
 //    private var fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 //    private lateinit var locationCallback2: LocationCallback
@@ -1110,7 +1121,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 //    }
 
     fun startService(context: Context, gameId: String, isSeeker: Boolean) {
-        ForegroundService.start(
+        GameService.start(
             context = context,
             gameId = gameId,
             isSeeker = isSeeker
@@ -1118,43 +1129,11 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun stopService(context: Context) {
-        ForegroundService.stop(
+        GameService.stop(
             context = context,
         )
+        unregisterReceiver(context)
     }
 
-}
-
-//source: https://stackoverflow.com/questions/6048975/google-maps-v3-how-to-calculate-the-zoom-level-for-a-given-bounds
-fun getBoundsZoomLevel(bounds: LatLngBounds, mapDim: Size): Double {
-    val WORLD_DIM = Size(256, 256)
-    val ZOOM_MAX = 21.toDouble()
-
-    fun latRad(lat: Double): Double {
-        val sin = sin(lat * Math.PI / 180)
-        val radX2 = ln((1 + sin) / (1 - sin)) / 2
-        return max(min(radX2, Math.PI), -Math.PI) / 2
-    }
-
-    fun zoom(mapPx: Int, worldPx: Int, fraction: Double): Double {
-        return floor(ln(mapPx / worldPx / fraction) / ln(2.0))
-    }
-
-    val ne = bounds.northeast
-    val sw = bounds.southwest
-
-    val latFraction = (latRad(ne.latitude) - latRad(sw.latitude)) / Math.PI
-
-    val lngDiff = ne.longitude - sw.longitude
-    val lngFraction = if (lngDiff < 0) {
-        (lngDiff + 360) / 360
-    } else {
-        (lngDiff / 360)
-    }
-
-    val latZoom = zoom(mapDim.height, WORLD_DIM.height, latFraction)
-    val lngZoom = zoom(mapDim.width, WORLD_DIM.width, lngFraction)
-
-    return minOf(latZoom, lngZoom, ZOOM_MAX)
 }
 

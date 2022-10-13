@@ -1,9 +1,5 @@
 package com.example.seekers
 
-import android.Manifest
-import androidx.navigation.NavController
-import com.example.seekers.general.CustomButton
-import com.example.seekers.general.IconButton
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
@@ -31,10 +27,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.seekers.general.PermissionDialog
-import com.example.seekers.general.getPermissionLauncher
-import com.example.seekers.ui.theme.Raisin
+import androidx.navigation.NavController
+import com.example.seekers.general.CustomButton
+import com.example.seekers.general.IconButton
 import com.example.seekers.ui.theme.Emerald
+import com.example.seekers.ui.theme.Raisin
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -52,7 +49,8 @@ fun LobbyCreationScreen(
     vm: LobbyCreationScreenViewModel = viewModel(),
     navController: NavController,
     nickname: String,
-    avatarId: Int
+    avatarId: Int,
+    permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
     val maxPlayers by vm.maxPlayers.observeAsState()
@@ -62,24 +60,14 @@ fun LobbyCreationScreen(
     val center by vm.center.observeAsState()
     val currentLocation by vm.currentLocation.observeAsState()
     val showMap by vm.showMap.observeAsState(false)
+    val isLocationAllowed by permissionVM.fineLocPerm.observeAsState(false)
 
-    var showPermissionsDialog by remember { mutableStateOf(false) }
-    var dialogShown by remember { mutableStateOf(false) }
-    var isLocationAllowed by remember { mutableStateOf(false) }
     var initialLocationSet by remember { mutableStateOf(false) }
-    var cameraState = rememberCameraPositionState()
-    val locationPermissionLauncher = getPermissionLauncher(
-        onResult = {
-            isLocationAllowed = it
-        }
-    )
+    val cameraState = rememberCameraPositionState()
     val screenHeight = LocalConfiguration.current.screenHeightDp * 0.3
 
-    LaunchedEffect(dialogShown) {
-        if (dialogShown) {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
+    LaunchedEffect(Unit) {
+        permissionVM.checkAllPermissions(context)
     }
 
     LaunchedEffect(isLocationAllowed) {
@@ -132,15 +120,9 @@ fun LobbyCreationScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-
                         .height(100.dp)
                         .clickable {
-                            if (LocationHelper.checkPermissions(context)) {
-                                isLocationAllowed = true
-                                vm.updateShowMap(true)
-                            } else {
-                                showPermissionsDialog = true
-                            }
+                            vm.updateShowMap(true)
                         },
                     elevation = 10.dp
                 ) {
@@ -193,7 +175,7 @@ fun LobbyCreationScreen(
                             maxPlayers = maxPlayers!!,
                             timeLimit = timeLimit!!,
                             radius = radius!!,
-                            status = LobbyStatus.CREATED.value,
+                            status = LobbyStatus.CREATED.ordinal,
                             countdown = countdown!!
                         )
                         val gameId = vm.addLobby(lobby)
@@ -201,8 +183,8 @@ fun LobbyCreationScreen(
                             nickname = nickname,
                             avatarId = avatarId,
                             playerId = FirebaseHelper.uid!!,
-                            inLobbyStatus = InLobbyStatus.CREATOR.value,
-                            inGameStatus = InGameStatus.SEEKER.value
+                            inLobbyStatus = InLobbyStatus.CREATOR.ordinal,
+                            inGameStatus = InGameStatus.SEEKER.ordinal
                         )
                         vm.addPlayer(player, gameId)
                         vm.updateUser(
@@ -246,19 +228,6 @@ fun LobbyCreationScreen(
                 Text(text = "Please allow location to set a playing area")
             }
         }
-    }
-
-
-    if (showPermissionsDialog) {
-        PermissionDialog(
-            onDismiss = { showPermissionsDialog = false },
-            onContinue = {
-                showPermissionsDialog = false
-                dialogShown = true
-            },
-            title = "Location Permission",
-            text = "Seekers needs your location to enhance your Hide and Seek games!"
-        )
     }
 }
 
@@ -314,7 +283,8 @@ fun Input(
                     unfocusedBorderColor = Raisin,
                     unfocusedLabelColor = Raisin,
                     trailingIconColor = Raisin
-                )
+                ),
+                singleLine = true
             )
         }
     }
@@ -342,8 +312,8 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
     // Map
     val showMap = MutableLiveData(false)
     val currentLocation = MutableLiveData<LatLng>()
-    val client = LocationServices.getFusedLocationProviderClient(application)
-    val locationCallback = object : LocationCallback() {
+    private val client = LocationServices.getFusedLocationProviderClient(application)
+    private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(p0: LocationResult) {
             p0.lastLocation?.let {
                 currentLocation.postValue(LatLng(it.latitude, it.longitude))
@@ -400,7 +370,7 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
             .addOnSuccessListener { data ->
                 val player = data.toObject(Player::class.java)
                 player?.let {
-                    isCreator.postValue(it.inLobbyStatus == InLobbyStatus.CREATOR.value)
+                    isCreator.postValue(it.inLobbyStatus == InLobbyStatus.CREATOR.ordinal)
                 }
             }
             .addOnFailureListener {
@@ -422,7 +392,15 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
     fun getLobby(gameId: String) {
         firestore.getLobby(gameId).addSnapshotListener { data, e ->
             data?.let {
-                lobby.postValue(it.toObject(Lobby::class.java))
+                val lobbyFetched = it.toObject(Lobby::class.java)
+                if (lobbyFetched != null) {
+                    lobby.postValue(lobbyFetched)
+                    maxPlayers.postValue(lobbyFetched.maxPlayers)
+                    timeLimit.postValue(lobbyFetched.timeLimit)
+                    countdown.postValue(lobbyFetched.countdown)
+                    radius.postValue(lobbyFetched.radius)
+                    center.postValue(LatLng(lobbyFetched.center.latitude, lobbyFetched.center.longitude))
+                }
             }
         }
     }

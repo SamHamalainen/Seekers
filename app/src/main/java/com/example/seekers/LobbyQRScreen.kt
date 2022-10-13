@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.DoorBack
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -27,6 +31,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,8 +46,10 @@ import com.example.seekers.general.QRCodeComponent
 import com.example.seekers.general.generateQRCode
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
+import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.ui.theme.avatarBackground
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.MapProperties
@@ -58,6 +65,7 @@ fun LobbyQRScreen(
     navController: NavHostController,
     vm: LobbyCreationScreenViewModel = viewModel(),
     gameId: String,
+    permissionVM: PermissionsViewModel,
 ) {
     val context = LocalContext.current
     val bitmap = generateQRCode(gameId)
@@ -71,6 +79,7 @@ fun LobbyQRScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        permissionVM.checkAllPermissions(context)
         scope.launch(Dispatchers.IO) {
             vm.getPlayers(gameId)
             vm.getLobby(gameId)
@@ -81,21 +90,25 @@ fun LobbyQRScreen(
     LaunchedEffect(lobby) {
         lobby?.let {
             when (it.status) {
-                LobbyStatus.DELETED.value -> {
+                LobbyStatus.DELETED.ordinal -> {
                     if (isCreator != true) {
-                        Toast.makeText(context, "The lobby was closed by the host", Toast.LENGTH_LONG)
+                        Toast.makeText(
+                            context,
+                            "The lobby was closed by the host",
+                            Toast.LENGTH_LONG
+                        )
                             .show()
                     }
                     vm.updateUser(FirebaseHelper.uid!!, mapOf(Pair("currentGameId", "")))
                     navController.navigate(NavRoutes.StartGame.route)
                 }
-                LobbyStatus.COUNTDOWN.value -> {
+                LobbyStatus.COUNTDOWN.ordinal -> {
                     scope.launch {
                         delay(1000)
                         navController.navigate(NavRoutes.Countdown.route + "/$gameId")
                     }
                 }
-                LobbyStatus.ACTIVE.value -> {
+                LobbyStatus.ACTIVE.ordinal -> {
                     navController.navigate(NavRoutes.Heatmap.route + "/$gameId")
                 }
             }
@@ -115,44 +128,50 @@ fun LobbyQRScreen(
 
     Scaffold(topBar = {
         TopAppBar(
-            title = {
-                Text(
-                    text = "Scan QR to join!",
-                    fontSize = 20.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(15.dp)
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = {
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                IconButton(modifier = Modifier.align(Alignment.CenterStart), onClick = {
                     showQRDialog = true
                 }) {
                     Icon(Icons.Outlined.QrCode2, "QR", modifier = Modifier.size(40.dp))
                 }
-            },
-            actions = {
-                Button(onClick = {
-                    if (isCreator == true) {
-                        showDismissDialog = true
-                    } else {
-                        showLeaveDialog = true
-                    }
-                }, colors = ButtonDefaults.buttonColors(
+                Text(
+                    text = "Scan QR to join!",
+                    fontSize = 20.sp,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                Card(
                     backgroundColor = SizzlingRed,
-                    contentColor = Color.White
-                )) {
-                    Text(text = "LEAVE")
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clickable {
+                            if (isCreator == true) {
+                                showDismissDialog = true
+                            } else {
+                                showLeaveDialog = true
+                            }
+                        }) {
+                    Icon(
+                        imageVector = Icons.Filled.Logout,
+                        contentDescription = "Leave",
+                        tint = Color.White,
+                        modifier = Modifier.padding(8.dp)
+                    )
                 }
-            },
-            backgroundColor = Color.Transparent,
-            elevation = 0.dp
-        )
-    }, backgroundColor = Powder
+            }
+        }
+    }
     ) {
         Column(
-            Modifier.padding(it).background(Powder),
+            Modifier.padding(it),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(text = "Participants", fontSize = 20.sp, modifier = Modifier.padding(15.dp))
             Participants(
@@ -170,7 +189,7 @@ fun LobbyQRScreen(
                         CustomButton(text = "Start Game") {
                             vm.updateLobby(
                                 mapOf(
-                                    Pair("status", LobbyStatus.COUNTDOWN.value),
+                                    Pair("status", LobbyStatus.COUNTDOWN.ordinal),
                                     Pair("startTime", FieldValue.serverTimestamp())
                                 ),
                                 gameId
@@ -179,7 +198,6 @@ fun LobbyQRScreen(
                     }
                 }
             }
-
         }
         if (showQRDialog) {
             QRDialog(
@@ -207,7 +225,7 @@ fun LobbyQRScreen(
         if (showDismissDialog) {
             DismissLobbyDialog(onDismissRequest = { showDismissDialog = false }, onConfirm = {
                 val changeMap = mapOf(
-                    Pair("status", LobbyStatus.DELETED.value)
+                    Pair("status", LobbyStatus.DELETED.ordinal)
                 )
                 vm.updateUser(
                     FirebaseHelper.uid!!,
@@ -276,7 +294,8 @@ fun EditRulesDialog(
                         Box(modifier = Modifier.padding(40.dp, 0.dp, 40.dp, 0.dp)) {
                             CustomButton(text = "Save") {
                                 if (maxPlayers != null && timeLimit != null && radius != null && countdown != null && center != null) {
-                                    val centerGeoPoint = GeoPoint(center!!.latitude, center!!.longitude)
+                                    val centerGeoPoint =
+                                        GeoPoint(center!!.latitude, center!!.longitude)
                                     val changeMap = mapOf(
                                         Pair("center", centerGeoPoint),
                                         Pair("maxPlayers", maxPlayers!!),
@@ -289,7 +308,11 @@ fun EditRulesDialog(
                                         .show()
                                     onDismissRequest()
                                 } else {
-                                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        context,
+                                        "Please fill all fields",
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                 }
                             }
@@ -317,15 +340,20 @@ fun ShowRules(vm: LobbyCreationScreenViewModel) {
 
 @Composable
 fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
+
     val context = LocalContext.current
     val maxPlayers by vm.maxPlayers.observeAsState()
     val timeLimit by vm.timeLimit.observeAsState()
-    val radius by vm.radius.observeAsState()
     val countdown by vm.countdown.observeAsState()
     val showMap by vm.showMap.observeAsState(false)
-    var isLocationAllowed by remember { mutableStateOf(false) }
-    var showPermissionsDialog by remember { mutableStateOf(false) }
+    val center by vm.center.observeAsState()
     var cameraState = rememberCameraPositionState()
+
+    LaunchedEffect(center) {
+        center?.let {
+            cameraState.position = CameraPosition.fromLatLngZoom(it, 14f)
+        }
+    }
 
     if (!showMap) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -347,30 +375,13 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
                 keyboardType = KeyboardType.Number,
                 onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
 
-            /* IconButton(
-                resourceId = R.drawable.map,
-                buttonText = "Define Area",
-                buttonColor = if (showMap) Color(0xFF838383) else Color.LightGray,
-            ) {
-                if (LocationHelper.checkPermissions(context)) {
-                    isLocationAllowed = true
-                    vm.updateShowMap(true)
-                } else {
-                    showPermissionsDialog = true
-                }
-            }*/
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
 
                     .height(100.dp)
                     .clickable {
-                        if (LocationHelper.checkPermissions(context)) {
-                            isLocationAllowed = true
-                            vm.updateShowMap(true)
-                        } else {
-                            showPermissionsDialog = true
-                        }
+                        vm.updateShowMap(true)
                     },
                 elevation = 10.dp
             ) {
@@ -402,36 +413,29 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
             }
         }
     } else {
-        if (isLocationAllowed) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Icon(imageVector = Icons.Filled.Cancel, contentDescription = "cancel",
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .clickable {
-                            vm.updateShowMap(false)
-                        }
-                )
-                AreaSelectionMap(
-                    vm = vm,
-                    properties = MapProperties(
-                        mapType = MapType.SATELLITE,
-                        isMyLocationEnabled = true
-                    ),
-                    settings = MapUiSettings(
-                        zoomControlsEnabled = true,
-                        zoomGesturesEnabled = true,
-                        rotationGesturesEnabled = false,
-                        scrollGesturesEnabled = true
-                    ),
-                    state = cameraState
-                )
-            }
-
-        } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Please allow location to set a playing area")
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            Icon(imageVector = Icons.Filled.Cancel, contentDescription = "cancel",
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .clickable {
+                        vm.updateShowMap(false)
+                    }
+            )
+            AreaSelectionMap(
+                vm = vm,
+                properties = MapProperties(
+                    mapType = MapType.SATELLITE,
+                    isMyLocationEnabled = true,
+                ),
+                settings = MapUiSettings(
+                    zoomControlsEnabled = true,
+                    zoomGesturesEnabled = true,
+                    rotationGesturesEnabled = false,
+                    scrollGesturesEnabled = true
+                ),
+                state = cameraState
+            )
         }
     }
 
@@ -482,12 +486,13 @@ fun QRDialog(
     onDismissRequest: () -> Unit
 ) {
     Dialog(onDismissRequest = { onDismissRequest() }) {
-        Surface(
-            color = Color.White,
+        Card(
+            backgroundColor = Color.White,
+            shape = MaterialTheme.shapes.medium
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(30.dp)
+                modifier = Modifier.padding(10.dp)
             ) {
                 QRCodeComponent(bitmap = bitmap)
             }
@@ -495,17 +500,6 @@ fun QRDialog(
     }
 
 }
-
-@Composable
-fun QRCodeComponent(modifier: Modifier = Modifier, bitmap: Bitmap) {
-
-    Image(
-        bitmap = bitmap.asImageBitmap(),
-        contentDescription = "QR",
-        modifier = modifier.size(250.dp)
-    )
-}
-
 
 @Composable
 fun Participants(
@@ -516,11 +510,13 @@ fun Participants(
     gameId: String
 ) {
     var kickableIndex: Int? by remember { mutableStateOf(null) }
-
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+        }
         itemsIndexed(players.sortedBy { it.inLobbyStatus }) { index, player ->
             PlayerCard(
                 player = player,
@@ -562,7 +558,7 @@ fun PlayerCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth().padding(6.dp),
+            .fillMaxWidth(),
         elevation = 10.dp
     ) {
         Row(
@@ -590,8 +586,8 @@ fun PlayerCard(
                         .padding(10.dp)
                 )
             }
-            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.value) "(Host)" else ""}")
-            if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.value) {
+            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}")
+            if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.ordinal) {
                 Button(
                     onClick = {
                         vm.removePlayer(gameId = gameId, player.playerId)
