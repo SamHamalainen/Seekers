@@ -196,7 +196,7 @@ enum class InLobbyStatus {
 
 enum class InGameStatus {
     SEEKER,
-    PLAYER,
+    HIDING,
     MOVING,
     ELIMINATED,
     INVISIBLE,

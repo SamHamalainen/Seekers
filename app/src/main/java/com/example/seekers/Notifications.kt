@@ -52,7 +52,7 @@ object Notifications {
         return builder
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.seekers_notif)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.chick_with_background))
             .setPriority(priority)
             .setCategory(category)
