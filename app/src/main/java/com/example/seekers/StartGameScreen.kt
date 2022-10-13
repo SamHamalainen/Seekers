@@ -25,6 +25,8 @@ import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -62,6 +64,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun StartGameScreen(navController: NavController, vm: PermissionsViewModel = viewModel()) {
@@ -202,7 +205,7 @@ fun StartGameScreen(navController: NavController, vm: PermissionsViewModel = vie
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(32.dp)
+                    .padding(18.dp)
             ) {
                 LogOutButton(text = "Log out") {
                     Firebase.auth.signOut()
@@ -257,38 +260,53 @@ fun TutorialDialog(onDismiss: () -> Unit) {
     val screenHeight = LocalConfiguration.current.screenHeightDp * .9
     val screenWidth = LocalConfiguration.current.screenWidthDp * .9
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(
-            Modifier
-                .padding(5.dp)
-                .background(Powder)
-                .fillMaxSize()) {
-            val pagerState = rememberPagerState()
+        Box(Modifier.fillMaxSize().background(Powder)) {
+            Column(
+                Modifier
+                    .background(Powder)
+                    .fillMaxSize()) {
+                val pagerState = rememberPagerState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Cancel,
+                        contentDescription = "close dialog",
+                        modifier = Modifier
+                            .width(30.dp)
+                            .height(30.dp)
+                            .clickable { onDismiss() }
+                    )
+                }
 
-            // Display 10 items
-            HorizontalPager(
-                count = 5,
-                state = pagerState,
-                // Add 32.dp horizontal padding to 'center' the pages
-                contentPadding = PaddingValues(horizontal = 32.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) { page ->
-                PagerSampleItem(
-                    page = page,
+                // Display 10 items
+                HorizontalPager(
+                    count = 5,
+                    state = pagerState,
+                    // Add 32.dp horizontal padding to 'center' the pages
+                    contentPadding = PaddingValues(horizontal = 32.dp),
                     modifier = Modifier
-                        .fillMaxSize(),
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) { page ->
+                    PagerSampleItem(
+                        page = page,
+                        modifier = Modifier
+                            .fillMaxSize(),
+                    )
+                }
+
+                HorizontalPagerIndicator(
+                    pagerState = pagerState,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(16.dp),
                 )
+
+
             }
-
-            HorizontalPagerIndicator(
-                pagerState = pagerState,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(16.dp),
-            )
-
-
         }
     }
 
@@ -300,13 +318,15 @@ internal fun PagerSampleItem(
     page: Int,
     modifier: Modifier = Modifier,
 ) {
+    val screenHeight = LocalConfiguration.current.screenHeightDp
     if(page == 0) {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Create a lobby to host your own game as the Seeker, and share the QR code for all your friends!", modifier = Modifier.padding(5.dp))
             Image(
                 painter = painterResource(id = R.drawable.tutorial1),
                 contentDescription = "tutorial",
-                alignment = Alignment.Center
+                alignment = Alignment.Center,
+                modifier = Modifier.height((screenHeight*0.5).dp),
             )
             Text(text = "Or join a lobby of a friend with a QR code and get ready to hide!", modifier = Modifier.padding(5.dp))
 
@@ -332,8 +352,9 @@ internal fun PagerSampleItem(
             Image(
                 painter = painterResource(id = R.drawable.tutorial3),
                 contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
+                alignment = Alignment.Center,
+                modifier = Modifier.height((screenHeight*0.5).dp),
+                )
             Text(text = "And don't forget to define the play area before creating the lobby!", modifier = Modifier.padding(5.dp))
 
         }
@@ -343,8 +364,9 @@ internal fun PagerSampleItem(
             Image(
                 painter = painterResource(id = R.drawable.tutorial4),
                 contentDescription = "tutorial",
-                alignment = Alignment.Center
-            )
+                alignment = Alignment.Center,
+                modifier = Modifier.height((screenHeight*0.5).dp),
+                )
             Text(text = "Just move the camera to a favorable position, set the radius with the vertical slider and you're good to go!", modifier = Modifier.padding(5.dp))
         }
     } else if(page == 4) {
