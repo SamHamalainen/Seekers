@@ -28,12 +28,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.seekers.general.AvatarIcon
 import com.example.seekers.ui.theme.Powder
+import com.example.seekers.ui.theme.SizzlingRed
 import java.util.*
 
 @Composable
@@ -57,11 +59,11 @@ fun PlayerListDialog(onDismiss: () -> Unit, players: List<Player>) {
                 .fillMaxWidth()
                 .height(height.dp)
                 .padding(32.dp),
-            backgroundColor = Color.White,
+            backgroundColor = Powder,
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 32.dp)) {
-                Text(text = "Player list")
+                Text(text = "PLAYERS", fontSize = 22.sp)
                 Spacer(modifier = Modifier.height(32.dp))
                 PlayerList(players = players)
             }
@@ -80,10 +82,11 @@ fun PlayerList(players: List<Player>) {
 
 @Composable
 fun PlayerTile(player: Player) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
     Column(Modifier.fillMaxWidth()) {
         Card(modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp), elevation = 4.dp) {
+            .padding(4.dp), elevation = 4.dp) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -96,7 +99,7 @@ fun PlayerTile(player: Player) {
                         .padding(8.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(text = player.nickname)
+                Text(text = player.nickname, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.3).dp))
                 Spacer(modifier = Modifier.weight(1f))
                 StatusPill(inGameStatus = player.inGameStatus)
             }
@@ -108,12 +111,12 @@ fun PlayerTile(player: Player) {
 @Composable
 fun StatusPill(inGameStatus: Int) {
     val status = InGameStatus.values()[inGameStatus].name.lowercase(Locale.getDefault())
-    val color = if (inGameStatus == InGameStatus.SEEKER.ordinal) Color.Red else Color.LightGray
+    val color = if (inGameStatus == InGameStatus.SEEKER.ordinal) SizzlingRed else Color.LightGray
 
     Card(shape = RoundedCornerShape(16.dp), backgroundColor = color) {
         Text(
-            text = status,
-            fontSize = 10.sp,
+            text = status.uppercase(Locale.ROOT),
+            fontSize = 16.sp,
             modifier = Modifier
                 .padding(horizontal = 8.dp)
                 .padding(vertical = 4.dp),

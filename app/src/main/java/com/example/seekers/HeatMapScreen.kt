@@ -52,8 +52,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.seekers.general.*
 import com.example.seekers.general.QRCodeComponent
+import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.Emerald
+import com.example.seekers.ui.theme.Mango
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.CameraPosition
@@ -70,9 +72,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
-@SuppressLint("MissingPermission")
+@SuppressLint("MissingPermission", "UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun HeatMapScreen(
     vm: HeatMapViewModel = viewModel(),
@@ -512,10 +515,11 @@ fun HeatMapScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(
-                                                Icons.Default.PermIdentity,
+                                                Icons.Default.PeopleAlt,
                                                 contentDescription = "",
                                                 tint = Raisin
                                             )
+                                            Spacer(Modifier.width(2.dp))
                                             Text(
                                                 text = "$hidingAmount/$total",
                                                 color = Raisin,
@@ -661,7 +665,7 @@ fun RadarDialog(
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = Powder,
             modifier = Modifier.height(height.dp)
         ) {
             RadarScreen(gameId = gameId)
@@ -672,13 +676,20 @@ fun RadarDialog(
 @Composable
 fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boolean) {
     Box {
-        Card(shape = CircleShape, elevation = 4.dp, modifier = modifier.clickable { onClick() }) {
-            Icon(
-                imageVector = Icons.Filled.Notifications,
-                contentDescription = "qr",
-                modifier = Modifier.padding(8.dp)
-            )
-        }
+        IconButton(
+            onClick = { onClick() },
+            content = {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = "news",
+                        tint = Raisin
+                    )
+                }
+            })
         if (hasNew) {
             Surface(
                 color = Color.Red, shape = CircleShape, modifier = Modifier
@@ -700,12 +711,12 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
         Card(
             modifier = Modifier
                 .height((screenHeight * 0.8).dp)
-                .fillMaxWidth(), backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)
+                .fillMaxWidth(), backgroundColor = Powder, shape = RoundedCornerShape(8.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Events",
-                    style = MaterialTheme.typography.h6,
+                    text = "EVENTS",
+                    fontSize = 22.sp,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
                 LazyColumn(
@@ -738,7 +749,8 @@ fun NewsItem(news: News, gameId: String) {
     bitmap?.let {
         Card(
             shape = RoundedCornerShape(8.dp),
-            backgroundColor = Color.LightGray,
+            backgroundColor = Color.White,
+            elevation = 5.dp,
             modifier = Modifier.padding(16.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -891,7 +903,11 @@ fun GameTimer(vm: HeatMapViewModel) {
         ) {
             Icon(Icons.Default.Alarm, contentDescription = "", tint = Raisin)
             Box(modifier = Modifier.width(90.dp), contentAlignment = Alignment.Center) {
-                Text(text = secondsToText(it), color = Raisin, fontSize = 20.sp)
+                val timeText = secondsToText(it)
+                if(timeText == "Time's up!")
+                    Text(text = timeText, color = Raisin, fontSize = 16.sp)
+                else
+                    Text(text = timeText, color = Raisin, fontSize = 20.sp)
             }
         }
     }

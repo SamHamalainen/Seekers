@@ -5,10 +5,12 @@ import android.location.LocationManager
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -19,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LiveData
@@ -29,12 +33,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.seekers.general.AvatarIcon
 import com.example.seekers.general.CustomButton
-import com.example.seekers.ui.theme.avatarBackground
+import com.example.seekers.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.*
 
 @Composable
 fun RadarScreen(
@@ -47,28 +53,28 @@ fun RadarScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
+            .fillMaxSize().background(Powder),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val text = when (scanning) {
-            ScanningStatus.BEFORE_SCAN.value -> "Scan to find nearby players"
-            ScanningStatus.SCANNING.value -> "Scanning..."
-            ScanningStatus.SCANNING_STOPPED.value -> "Found ${playersInGame.size} players nearby"
+            ScanningStatus.BEFORE_SCAN.value -> "SCAN TO FIND NEARBY PLAYERS"
+            ScanningStatus.SCANNING.value -> "SCANNING..."
+            ScanningStatus.SCANNING_STOPPED.value -> "FOUND ${playersInGame.size} PLAYERS NEARBY"
             else -> ""
         }
         Text(
             text = text,
             fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            modifier = Modifier.padding(22.dp),
+            textAlign = TextAlign.Center
         )
         if (scanning == ScanningStatus.SCANNING.value) {
             ScanningLottie()
         } else {
             FoundPlayerList(playersAndDistance = playersInGame, vm = vm, gameId = gameId)
         }
-        CustomButton(text = "Scan") {
+        CustomButton(text = "Scan", modifier = Modifier.padding(22.dp)) {
             vm.updateScanStatus(ScanningStatus.SCANNING.value)
             scope.launch {
                 val gotPlayers = withContext(Dispatchers.IO) {
@@ -106,7 +112,8 @@ fun FoundPlayerList(
     LazyColumn(
         modifier = Modifier
             .padding(15.dp)
-            .height(height.dp),
+            .height(height.dp)
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(playersAndDistance) { player ->
@@ -120,6 +127,7 @@ fun FoundPlayerCard(
     player: Player,
     distance: Float
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
 
     val avatarID = when (player.avatarId) {
         0 -> R.drawable.bee
@@ -137,12 +145,43 @@ fun FoundPlayerCard(
     }
 
     val backgroundColor = when (player.distanceStatus) {
-        1 -> Color.Red
+        1 -> SizzlingRed
         2 -> Color.Yellow
-        3 -> Color.Green
+        3 -> Emerald
         else -> Color.White
     }
-
+    Column(Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp), elevation = 4.dp) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AvatarIcon(
+                    resourceId = avatarList[player.avatarId], imgModifier = Modifier
+                        .size(35.dp)
+                        .padding(8.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(text = player.nickname, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.3).dp))
+                Spacer(modifier = Modifier.weight(1f))
+                Card(shape = RoundedCornerShape(16.dp), backgroundColor = backgroundColor) {
+                    Text(
+                        text = "${distance.toInt()} m",
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .padding(vertical = 4.dp),
+                        color = Raisin
+                    )
+                }
+            }
+        }
+    }
+    /*
     Card(
         modifier = Modifier
             .fillMaxWidth(),
@@ -178,7 +217,7 @@ fun FoundPlayerCard(
                     .padding(10.dp)
             )
         }
-    }
+    } */
 }
 
 class RadarViewModel() : ViewModel() {

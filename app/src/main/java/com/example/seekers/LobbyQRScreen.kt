@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,12 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -43,6 +46,8 @@ import com.example.seekers.general.CustomButton
 import com.example.seekers.general.IconButton
 import com.example.seekers.general.QRCodeComponent
 import com.example.seekers.general.generateQRCode
+import com.example.seekers.ui.theme.Powder
+import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.ui.theme.avatarBackground
@@ -274,7 +279,7 @@ fun EditRulesDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "${if (isCreator) "Edit" else "Check"} Rules")
+                        Text(text = "${if (isCreator) "EDIT" else "CHECK"} RULES")
                         Icon(
                             imageVector = Icons.Filled.Cancel,
                             contentDescription = "close dialog",
@@ -372,12 +377,41 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
                 keyboardType = KeyboardType.Number,
                 onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
 
-            IconButton(
-                resourceId = R.drawable.map,
-                buttonText = "Define Area",
-                buttonColor = Emerald,
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+
+                    .height(100.dp)
+                    .clickable {
+                        vm.updateShowMap(true)
+                    },
+                elevation = 10.dp
             ) {
-                vm.updateShowMap(true)
+                Box(Modifier.fillMaxSize()) {
+                    Image(
+                        painter = painterResource(R.drawable.map),
+                        contentDescription = "map",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        alignment = Alignment.CenterEnd
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(16.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(text = "EDIT PLAY AREA", fontSize = 22.sp)
+                            Box(
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(1.dp)
+                                    .background(color = Raisin)
+                            )
+                        }
+                    }
+                }
             }
         }
     } else {
@@ -508,6 +542,7 @@ fun PlayerCard(
     setKickableIndex: () -> Unit,
     isKickable: Boolean
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
 
     val avaratID = when (player.avatarId) {
         0 -> R.drawable.bee
@@ -554,14 +589,14 @@ fun PlayerCard(
                         .padding(10.dp)
                 )
             }
-            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}")
+            Text(text = "${player.nickname} ${if (player.inLobbyStatus == InLobbyStatus.CREATOR.ordinal) "(Host)" else ""}", maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width((screenWidth*0.5).dp))
             if (isKickable && player.inLobbyStatus == InLobbyStatus.JOINED.ordinal) {
                 Button(
                     onClick = {
                         vm.removePlayer(gameId = gameId, player.playerId)
                     },
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color.Red,
+                        backgroundColor = SizzlingRed,
                         contentColor = Color.White
                     ),
                     modifier = Modifier
