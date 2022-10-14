@@ -149,18 +149,18 @@ class GameService : Service() {
                 val player = it.toObject<Player>()
                 when (player?.inGameStatus) {
                     InGameStatus.JAMMED.ordinal, InGameStatus.SEEKER.ordinal -> {
-                        if (distanceToPrev > 10f) {
+                        if (distanceToPrev > 5f) {
                             updatePlayerLoc(gameId, curLoc)
                         }
                     }
                     InGameStatus.HIDING.ordinal -> {
-                        if (distanceToPrev > 10f) {
+                        if (distanceToPrev > 5f) {
                             updatePlayerLoc(gameId, curLoc)
                             setInGameStatus(InGameStatus.MOVING.ordinal, gameId)
                         }
                     }
                     InGameStatus.MOVING.ordinal -> {
-                        if (distanceToPrev <= 10f) {
+                        if (distanceToPrev <= 5f) {
                             setInGameStatus(InGameStatus.HIDING.ordinal, gameId)
                         }
                     }
