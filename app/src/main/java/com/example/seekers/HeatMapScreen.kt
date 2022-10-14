@@ -111,7 +111,7 @@ fun HeatMapScreen(
     var showLeaveGameDialog by remember { mutableStateOf(false) }
     var showQR by remember { mutableStateOf(false) }
     var showQRScanner by remember { mutableStateOf(false) }
-    var showPlayerFound by remember { mutableStateOf(false) }
+    var showPlayerFound by remember { mutableStateOf(true) }
     var showPlayerList by remember { mutableStateOf(false) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
@@ -834,8 +834,6 @@ fun ShowMyQRDialog(onDismiss: () -> Unit) {
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Oh no, you got caught!")
-                Spacer(modifier = Modifier.height(16.dp))
                 QRCodeComponent(bitmap = qrBitmap)
             }
         }
@@ -850,12 +848,12 @@ fun PlayerFoundDialog(playerFound: Player?, onCancel: () -> Unit, onTakePic: () 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text(text = "You found ${playerFound?.nickname}")
+                Text(text = "You found ${playerFound?.nickname}", fontSize = 22.sp)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CustomButton(text = "Take a selfie") {
                         onTakePic()
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     CustomButton(text = "Close") {
                         onCancel()
                     }
@@ -879,9 +877,13 @@ fun SendSelfieDialog(
         Card(backgroundColor = Color.White, shape = RoundedCornerShape(8.dp)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                modifier = Modifier.padding(16.dp),
+
+                ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     Image(
                         bitmap = selfie.asImageBitmap(),
                         contentDescription = "selfie",
@@ -893,15 +895,12 @@ fun SendSelfieDialog(
                     CustomButton(text = "Cancel") {
                         onDismiss()
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                     CustomButton(text = "Take another") {
                         takeNew()
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                     CustomButton(text = "Send") {
                         sendPic()
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         }
