@@ -202,6 +202,7 @@ fun HeatMapScreen(
                     vm.startStepCounter()
                 }
                 LobbyStatus.FINISHED.ordinal -> {
+                    vm.unregisterReceiver(context)
                     lobbyIsOver = true
                     object : CountDownTimer(60 * 1000, 1000) {
                         override fun onTick(p0: Long) {
@@ -1220,7 +1221,7 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         println("registered")
     }
 
-    private fun unregisterReceiver(context: Context) {
+    fun unregisterReceiver(context: Context) {
         context.unregisterReceiver(countdownReceiver)
     }
 
@@ -1236,7 +1237,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         GameService.stop(
             context = context,
         )
-//        unregisterReceiver(context)
     }
 
     //Variables and functions for the step counter

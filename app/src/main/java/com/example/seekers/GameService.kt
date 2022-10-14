@@ -332,7 +332,7 @@ class GameService : Service() {
                 val lobby = data.toObject<Lobby>()
                 if (lobby?.status == LobbyStatus.FINISHED.ordinal) {
                     val message = "The seekers have found the last player!\n" +
-                            "The game session will end in 15 seconds"
+                            "The game session will end in one minute"
                     sendEndGameNotification(message)
                 }
             }
@@ -398,14 +398,19 @@ class GameService : Service() {
     }
 
     fun timeUp() {
+        sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         currentGameId?.let { id ->
-            val changeMap = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
-            firestore.updateLobby(changeMap, gameId = id)
-            scope.launch {
-                delay(2000)
-                stop(applicationContext)
+            firestore.getLobby(id).get().addOnSuccessListener {
+                val status = it.toObject<Lobby>()?.status
+                if (status != LobbyStatus.FINISHED.ordinal) {
+                    val changeMap = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
+                    firestore.updateLobby(changeMap, gameId = id)
+                }
+                scope.launch {
+                    delay(500)
+                    stop(applicationContext)
+                }
             }
-            sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         }
     }
 
