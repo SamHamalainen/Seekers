@@ -80,6 +80,7 @@ fun GameEndScreen(
             }
         }
         CustomButton(text = "Start a new game") {
+            FirebaseHelper.updateUser(FirebaseHelper.uid!!, mapOf(Pair("currentGameId", "")))
             navController.navigate(NavRoutes.StartGame.route)
         }
         Spacer(modifier = Modifier.height(20.dp))

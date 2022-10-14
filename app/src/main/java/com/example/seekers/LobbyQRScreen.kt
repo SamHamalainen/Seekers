@@ -340,9 +340,9 @@ fun ShowRules(vm: LobbyCreationScreenViewModel) {
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(text = "Maximum amount of players: ${lobby?.maxPlayers}")
-        Text(text = "Time limit: ${lobby?.timeLimit}")
-        Text(text = "Play area radius: ${lobby?.radius}")
-        Text(text = "Time to hide: ${lobby?.countdown}")
+        Text(text = "Time limit: ${lobby?.timeLimit} minutes")
+        Text(text = "Play area radius: ${lobby?.radius} meters")
+        Text(text = "Time to hide: ${lobby?.countdown} minutes")
     }
 }
 

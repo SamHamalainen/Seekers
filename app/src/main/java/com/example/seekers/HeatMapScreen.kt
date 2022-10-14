@@ -187,7 +187,6 @@ fun HeatMapScreen(
             if (currentSeekers.size == activePlayers && activePlayers > 1) {
                 vm.setLobbyFinished(gameId)
                 drawerState.close()
-                lobbyIsOver = true
             }
         }
     }
@@ -199,6 +198,7 @@ fun HeatMapScreen(
                     vm.startStepCounter()
                 }
                 LobbyStatus.FINISHED.ordinal -> {
+                    lobbyIsOver = true
                     object : CountDownTimer(60 * 1000, 1000) {
                         override fun onTick(p0: Long) {
                             lobbyEndCountdown = p0.div(1000).toInt()
