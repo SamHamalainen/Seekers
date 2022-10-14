@@ -526,6 +526,8 @@ fun HeatMapScreen(
                                             it.count { player ->
                                                 player.inGameStatus == InGameStatus.HIDING.ordinal
                                                         || player.inGameStatus == InGameStatus.MOVING.ordinal
+                                                        || player.inGameStatus == InGameStatus.INVISIBLE.ordinal
+                                                        || player.inGameStatus == InGameStatus.DECOYED.ordinal
                                             }
                                         Row(
                                             modifier = Modifier.align(Alignment.CenterStart),
@@ -538,7 +540,7 @@ fun HeatMapScreen(
                                             )
                                             Spacer(Modifier.width(2.dp))
                                             Text(
-                                                text = "$hidingAmount/${total - 1}",
+                                                text = "$hidingAmount left",
                                                 color = Raisin,
                                                 fontSize = 16.sp
                                             )
