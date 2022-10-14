@@ -230,9 +230,9 @@ fun PowerButton(power: Power, vm: HeatMapViewModel, gameId: String) {
 }
 
 enum class Power(val icon: Int, val text: String, val duration: Int, val action: Int) {
-    INVISIBILITY(1, "Invisibility", 15, 1),
+    INVISIBILITY(1, "Invisibility", 30, 1),
     JAMMER(2, "Jammer", 5, 2),
-    DECOY(3, "Decoy", 15, 3),
+    DECOY(3, "Decoy", 30, 3),
     REVEAL(4, "Reveal seekers", 5, 4)
 }
 
