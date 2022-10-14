@@ -117,7 +117,7 @@ class GameService : Service() {
         previousLoc = curLoc
     }
 
-    fun setInGameStatus (status: Int, gameId: String) {
+    fun setInGameStatus(status: Int, gameId: String) {
         firestore.updatePlayerInGameStatus(
             status,
             gameId,
@@ -305,7 +305,7 @@ class GameService : Service() {
     }
 
     private fun listenForNews(gameId: String): ListenerRegistration {
-      return  FirebaseHelper.getNews(gameId)
+        return FirebaseHelper.getNews(gameId)
             .addSnapshotListener { data, e ->
                 Log.d(TAG, "listenForNews: player found ${data?.size()}")
                 data ?: kotlin.run {
@@ -323,7 +323,7 @@ class GameService : Service() {
     }
 
     private fun listenToLobby(gameId: String): ListenerRegistration {
-       return FirebaseHelper.getLobby(gameId)
+        return FirebaseHelper.getLobby(gameId)
             .addSnapshotListener { data, e ->
                 data ?: kotlin.run {
                     Log.e(TAG, "listenToLobby: ", e)
@@ -367,19 +367,15 @@ class GameService : Service() {
     private fun startTimer(timeLeft: Int) {
         timer = object : CountDownTimer(timeLeft * 1000L, 1000) {
             override fun onTick(p0: Long) {
-                if (p0 == 0L) {
-                    updateMainNotification(0)
-                    broadcastCountdown(0)
-                    timeUp()
-                    this.cancel()
-                    return
-                }
                 val seconds = p0.div(1000).toInt()
                 updateMainNotification(seconds)
                 broadcastCountdown(seconds)
             }
 
-            override fun onFinish() {}
+            override fun onFinish() {
+                timeUp()
+                this.cancel()
+            }
         }
         timer?.start()
     }
@@ -402,65 +398,58 @@ class GameService : Service() {
     }
 
     fun timeUp() {
-        sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         currentGameId?.let { id ->
-            firestore.getPlayers(gameId = id).get()
-                .addOnSuccessListener { data ->
-                    val players = data.toObjects(Player::class.java)
-                    val creator = players.find { it.inLobbyStatus == InLobbyStatus.CREATOR.ordinal }
-                    if (firestore.uid == creator?.playerId) {
-                        val changeMap = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
-                        firestore.updateLobby(changeMap, gameId = id)
-                    }
-                    scope.launch {
-                        delay(2000)
-                        stop(applicationContext)
-                    }
-                }
+            val changeMap = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
+            firestore.updateLobby(changeMap, gameId = id)
+            scope.launch {
+                delay(2000)
+                stop(applicationContext)
+            }
+            sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val gameId = intent?.getStringExtra("gameId")!!
-        currentGameId = gameId
-        val isSeeker = intent.getBooleanExtra("isSeeker", false)
-        newsListener = listenForNews(gameId)
-        lobbyListener = listenToLobby(gameId)
+            val gameId = intent?.getStringExtra("gameId")!!
+            currentGameId = gameId
+            val isSeeker = intent.getBooleanExtra("isSeeker", false)
+            newsListener = listenForNews(gameId)
+            lobbyListener = listenToLobby(gameId)
 
-        Notifications.createNotificationChannel(
-            context = applicationContext,
-            SEEKER_NOTIFICATION,
-            importanceLevel = NotificationManager.IMPORTANCE_HIGH
-        )
-        Notifications.createNotificationChannel(
-            context = applicationContext,
-            FOUND_NOTIFICATION,
-            importanceLevel = NotificationManager.IMPORTANCE_HIGH
-        )
-        Notifications.createNotificationChannel(
-            context = applicationContext,
-            END_NOTIFICATION,
-            importanceLevel = NotificationManager.IMPORTANCE_HIGH
-        )
-        Notifications.createNotificationChannel(context = applicationContext)
-        val notification = buildMainNotification(null)
-        startForeground(MAIN_NOTIFICATION_ID, notification)
-        startTracking(gameId, isSeeker)
-        getTime(gameId)
-        return START_NOT_STICKY
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isTracking) {
-            callback?.let {
-                stopTracking(it)
-                stopTimer()
-            }
+            Notifications.createNotificationChannel(
+                context = applicationContext,
+                SEEKER_NOTIFICATION,
+                importanceLevel = NotificationManager.IMPORTANCE_HIGH
+            )
+            Notifications.createNotificationChannel(
+                context = applicationContext,
+                FOUND_NOTIFICATION,
+                importanceLevel = NotificationManager.IMPORTANCE_HIGH
+            )
+            Notifications.createNotificationChannel(
+                context = applicationContext,
+                END_NOTIFICATION,
+                importanceLevel = NotificationManager.IMPORTANCE_HIGH
+            )
+            Notifications.createNotificationChannel(context = applicationContext)
+            val notification = buildMainNotification(null)
+            startForeground(MAIN_NOTIFICATION_ID, notification)
+            startTracking(gameId, isSeeker)
+            getTime(gameId)
+            return START_NOT_STICKY
         }
-        timer?.cancel()
-        newsListener?.remove()
-        lobbyListener?.remove()
-        lobbyListener?.remove()
+
+        override fun onDestroy() {
+            super.onDestroy()
+            if (isTracking) {
+                callback?.let {
+                    stopTracking(it)
+                    stopTimer()
+                }
+            }
+            timer?.cancel()
+            newsListener?.remove()
+            lobbyListener?.remove()
+            lobbyListener?.remove()
+        }
     }
-}

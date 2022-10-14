@@ -122,6 +122,10 @@ fun HeatMapScreen(
     val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
     val cameraIsAllowed by permissionVM.cameraPerm.observeAsState(false)
 
+    // powers
+    val powerCountdown by vm.powerCountdown.observeAsState()
+    val activePower by vm.activePower.observeAsState()
+
     // Other
     val scope = rememberCoroutineScope()
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
@@ -345,7 +349,8 @@ fun HeatMapScreen(
                                         tint = Raisin
                                     )
                                 }
-                            })
+                            },
+                        )
                     } else {
                         IconButton(
                             onClick = {
@@ -364,7 +369,10 @@ fun HeatMapScreen(
                                         tint = Raisin
                                     )
                                 }
-                            })
+                            },
+                            enabled = powerCountdown == 0
+                        )
+
                     }
 
                     IconButton(
@@ -653,6 +661,18 @@ fun HeatMapScreen(
                             }
                         } else {
                             Text(text = "Location permission needed")
+                        }
+                        if (activePower != null && powerCountdown != null) {
+                            PowerActiveIndicator(
+                                power = activePower!!,
+                                countdown = powerCountdown!!,
+                                modifier = Modifier
+                                    .align(
+                                        Alignment.TopStart
+                                    )
+                                    .padding(vertical = 64.dp)
+                                    .padding(horizontal = 12.dp)
+                            )
                         }
                     }
                 }
@@ -952,6 +972,8 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     val currentSeekers = MutableLiveData<List<Player>>()
     val canSeeSeeker = MutableLiveData<Boolean>()
     val showPowersDialog = MutableLiveData<Boolean>()
+    val powerCountdown = MutableLiveData(0)
+    val activePower = MutableLiveData<Power>()
     val showJammer = MutableLiveData<Boolean>()
     val playerStatus = Transformations.map(players) { list ->
         list.find { it.playerId == firestore.uid!! }?.inGameStatus
@@ -1282,25 +1304,36 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun revealSeekers() {
-        Log.d("powerups", "reveal seekers")
+        val power = Power.REVEAL
         showPowersDialog.value = false
         canSeeSeeker.value = true
-        viewModelScope.launch {
-            delay(10000)
-            canSeeSeeker.value = false
-        }
+        activePower.value = power
+        powerCountdown.value = power.duration
+        object : CountDownTimer(power.duration * 1000L, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                powerCountdown.value = millisUntilFinished.div(1000).toInt()
+            }
+
+            override fun onFinish() {
+                canSeeSeeker.value = false
+                activePower.value = null
+                this.cancel()
+            }
+        }.start()
     }
 
     fun activateInvisibility(gameId: String) {
-        Log.d("powerups", "im invisible")
+        val power = Power.INVISIBILITY
+        activePower.value = power
+        powerCountdown.value = power.duration
         showPowersDialog.value = false
         val changeMap = mapOf(
             Pair("inGameStatus", InGameStatus.INVISIBLE.ordinal)
         )
         firestore.updatePlayer(changeMap, FirebaseHelper.uid!!, gameId)
-        val timer = object : CountDownTimer(15000, 1000) {
+        object : CountDownTimer(power.duration * 1000L, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+                powerCountdown.value = millisUntilFinished.div(1000).toInt()
             }
 
             override fun onFinish() {
@@ -1308,24 +1341,26 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                     Pair("inGameStatus", InGameStatus.HIDING.ordinal)
                 )
                 firestore.updatePlayer(changeMap2, FirebaseHelper.uid!!, gameId)
+                activePower.value = null
                 this.cancel()
             }
-        }
-        timer.start()
+        }.start()
     }
 
     fun activateJammer(gameId: String) {
-        Log.d("powerups", "jamming seekers")
+        val power = Power.JAMMER
         showPowersDialog.value = false
+        activePower.value = power
+        powerCountdown.value = power.duration
         currentSeekers.value?.forEach {
             val changeMap = mapOf(
                 Pair("inGameStatus", InGameStatus.JAMMED.ordinal)
             )
             firestore.updatePlayer(changeMap, it.playerId, gameId)
         }
-        val timer = object : CountDownTimer(10000, 1000) {
+        object : CountDownTimer(power.duration * 1000L, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+                powerCountdown.value = millisUntilFinished.div(1000).toInt()
             }
 
             override fun onFinish() {
@@ -1335,22 +1370,24 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                     )
                     firestore.updatePlayer(changeMap2, it.playerId, gameId)
                 }
+                activePower.value = null
                 this.cancel()
             }
-        }
-        timer.start()
+        }.start()
     }
 
     fun deployDecoy(gameId: String) {
-        Log.d("powerups", "deploying decoy")
+        val power = Power.DECOY
+        activePower.value = power
+        powerCountdown.value = power.duration
         showPowersDialog.value = false
         val changeMap = mapOf(
             Pair("inGameStatus", InGameStatus.DECOYED.ordinal)
         )
         firestore.updatePlayer(changeMap, FirebaseHelper.uid!!, gameId)
-        val timer = object : CountDownTimer(15000, 1000) {
+        object : CountDownTimer(power.duration * 1000L, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                Log.d("powerups", "${(millisUntilFinished / 1000)} seconds remaining")
+                powerCountdown.value = millisUntilFinished.div(1000).toInt()
             }
 
             override fun onFinish() {
@@ -1358,10 +1395,10 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
                     Pair("inGameStatus", InGameStatus.HIDING.ordinal)
                 )
                 firestore.updatePlayer(changeMap2, FirebaseHelper.uid!!, gameId)
+                activePower.value = null
                 this.cancel()
             }
-        }
-        timer.start()
+        }.start()
     }
 }
 
