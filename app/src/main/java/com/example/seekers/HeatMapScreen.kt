@@ -111,7 +111,7 @@ fun HeatMapScreen(
     var showLeaveGameDialog by remember { mutableStateOf(false) }
     var showQR by remember { mutableStateOf(false) }
     var showQRScanner by remember { mutableStateOf(false) }
-    var showPlayerFound by remember { mutableStateOf(true) }
+    var showPlayerFound by remember { mutableStateOf(false) }
     var showPlayerList by remember { mutableStateOf(false) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
