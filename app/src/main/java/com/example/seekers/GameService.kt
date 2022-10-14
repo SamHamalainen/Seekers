@@ -185,9 +185,9 @@ class GameService : Service() {
                     )
                     results[0]
                 }
-                val proximityCriteria = 20f
+                val proximityCriteria = 10f
                 val numOfSeekersNearby = distances.filter { dist -> dist <= proximityCriteria }.size
-                if (numOfSeekersNearby > 0) {
+                if (numOfSeekersNearby > 0) {proximity
                     seekerNearbySent = true
                     sendSeekerNearbyNotification(num = numOfSeekersNearby)
                 }
