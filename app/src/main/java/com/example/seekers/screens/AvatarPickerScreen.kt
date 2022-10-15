@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -10,8 +10,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -20,15 +22,14 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.seekers.general.CustomButton
-import com.example.seekers.general.adjustContentWithKB
+import com.example.seekers.R
+import com.example.seekers.general.*
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.avatarBackground
+import com.example.seekers.viewModels.AvatarViewModel
 import kotlinx.coroutines.launch
 
 
@@ -139,39 +140,6 @@ fun AvatarPickerScreen(
     }
 }
 
-var avatarList = listOf(
-    R.drawable.bee,
-    R.drawable.chameleon,
-    R.drawable.chick,
-    R.drawable.cow,
-    R.drawable.crab,
-    R.drawable.dog,
-    R.drawable.elephant,
-    R.drawable.fox,
-    R.drawable.koala,
-    R.drawable.lion,
-    R.drawable.penguin,
-    R.drawable.whale,
-    R.drawable.avatar_empty
-)
-
-var avatarListWithBg = listOf(
-    R.drawable.bee_with_background,
-    R.drawable.chameleon_with_background,
-    R.drawable.chick_with_background,
-    R.drawable.cow_with_background,
-    R.drawable.crab_with_background,
-    R.drawable.dog_with_background,
-    R.drawable.elephant_with_background,
-    R.drawable.fox_with_background,
-    R.drawable.koala_with_background,
-    R.drawable.lion_with_background,
-    R.drawable.penguin_with_background,
-    R.drawable.whale_with_background,
-    R.drawable.avatar_empty
-)
-
-
 @Composable
 fun BottomSheet(onPick: (Int) -> Unit) {
     Column(
@@ -203,14 +171,4 @@ fun BottomSheet(onPick: (Int) -> Unit) {
             }
         }
     }
-
-}
-
-class AvatarViewModel() : ViewModel() {
-    val avatarId = MutableLiveData<Int>(R.drawable.avatar_empty)
-    val nickname = MutableLiveData("")
-    val firestore = FirebaseHelper
-    val nicknameError = MutableLiveData<Boolean>()
-    val showNicknameEmpty = MutableLiveData<Boolean>()
-
 }

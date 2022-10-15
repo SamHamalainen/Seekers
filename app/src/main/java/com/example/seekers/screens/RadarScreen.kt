@@ -1,46 +1,42 @@
-package com.example.seekers
+package com.example.seekers.screens
 
-import android.location.Location
-import android.location.LocationManager
-import android.util.Log
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.seekers.Player
+import com.example.seekers.R
 import com.example.seekers.general.AvatarIcon
 import com.example.seekers.general.CustomButton
-import com.example.seekers.ui.theme.*
+import com.example.seekers.general.avatarList
+import com.example.seekers.ui.theme.Emerald
+import com.example.seekers.ui.theme.Powder
+import com.example.seekers.ui.theme.Raisin
+import com.example.seekers.ui.theme.SizzlingRed
+import com.example.seekers.viewModels.RadarViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.*
 
 @Composable
 fun RadarScreen(
@@ -218,67 +214,4 @@ fun FoundPlayerCard(
             )
         }
     } */
-}
-
-class RadarViewModel() : ViewModel() {
-    val firestore = FirebaseHelper
-    private val _scanningStatus = MutableLiveData<Int>()
-    val scanningStatus: LiveData<Int> = _scanningStatus
-    val players = MutableLiveData(listOf<Pair<Player, Float>>())
-
-    fun filterPlayersList(list: List<Player>, initialSeeker: Player) {
-        viewModelScope.launch(Dispatchers.Default) {
-            val seekersGeoPoint = initialSeeker.location
-            Log.d("initialSeeker", seekersGeoPoint.toString())
-            val seekerConvertedToLocation = Location(LocationManager.GPS_PROVIDER)
-            seekerConvertedToLocation.latitude = seekersGeoPoint.latitude
-            seekerConvertedToLocation.longitude = seekersGeoPoint.longitude
-
-            val playersWithDistance = mutableListOf<Pair<Player, Float>>()
-
-            list.forEach { player ->
-                val playerConvertedToLocation = Location(LocationManager.GPS_PROVIDER)
-                playerConvertedToLocation.latitude = player.location.latitude
-                playerConvertedToLocation.longitude = player.location.longitude
-
-                val distanceFromSeeker =
-                    seekerConvertedToLocation.distanceTo(playerConvertedToLocation)
-                Log.d("location", "compare to: $distanceFromSeeker")
-                if (distanceFromSeeker <= 10) {
-                    player.distanceStatus = PlayerDistance.WITHIN10.ordinal
-                    playersWithDistance.add(Pair(player, distanceFromSeeker))
-                } else if (distanceFromSeeker > 10 && distanceFromSeeker <= 50) {
-                    player.distanceStatus = PlayerDistance.WITHIN50.ordinal
-                    playersWithDistance.add(Pair(player, distanceFromSeeker))
-                } else if (distanceFromSeeker > 50 && distanceFromSeeker <= 100) {
-                    player.distanceStatus = PlayerDistance.WITHIN100.ordinal
-                    playersWithDistance.add(Pair(player, distanceFromSeeker))
-                }
-            }
-
-            val playersFiltered =
-                playersWithDistance.filter {
-                    it.first.distanceStatus != PlayerDistance.NOT_IN_RADAR.ordinal && it.first.playerId != FirebaseHelper.uid!!
-                }
-            players.postValue(playersFiltered.sortedBy { it.second })
-        }
-    }
-
-    fun updateScanStatus(value: Int) {
-        _scanningStatus.value = value
-    }
-
-    suspend fun getPlayers(gameId: String): Boolean {
-        firestore.getPlayers(gameId)
-            .get().addOnSuccessListener { list ->
-                val playerList = list.toObjects(Player::class.java)
-                val seekerScanning = playerList.find { it.inGameStatus == InGameStatus.SEEKER.ordinal && it.playerId == FirebaseHelper.uid!! }
-                if (seekerScanning != null) {
-                    filterPlayersList(playerList, seekerScanning)
-                }
-            }
-        return true
-    }
-
-
 }

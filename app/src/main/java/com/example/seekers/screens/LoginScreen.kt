@@ -2,20 +2,16 @@ package com.example.seekers
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,17 +22,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.seekers.general.*
 import com.example.seekers.ui.theme.Raisin
-import com.example.seekers.ui.theme.avatarBackground
+import com.example.seekers.viewModels.AuthenticationViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginForm(
@@ -77,11 +71,10 @@ fun LoginForm(
             Text(text = "Sign in to continue", fontSize = 16.sp, color = Raisin)
         }
 
-        // Spacer(modifier = Modifier.height(40.dp))
-        if(invalidCredentials) {
-            Text(text = "Invalid email or password", color = Color.Red)
-        }
         Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            if(invalidCredentials) {
+                Text(text = "Invalid email or password", color = Color.Red)
+            }
             CustomOutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -137,14 +130,7 @@ fun LoginForm(
                                         println("logged in as: ${model.fireBaseAuth.currentUser}")
                                         invalidCredentials = false
                                         navController.navigate(NavRoutes.StartGame.route)
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "login failed!",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                     }
-
                                 }
                                 .addOnFailureListener {
                                     invalidCredentials = true
@@ -155,11 +141,8 @@ fun LoginForm(
                 )
             }
         }
-
         Text(text = "Or", fontSize = 16.sp, color = Raisin)
-
         GoogleButton(token = token, context = context, launcher = launcher)
-
         Row() {
             Text(text = "Don't have an account?", fontSize = 12.sp, color = Raisin)
             Text(

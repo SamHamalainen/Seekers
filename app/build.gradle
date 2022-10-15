@@ -55,17 +55,18 @@ android {
 
 dependencies {
 
+    def lottieVersion = "5.2.0"
+    def nav_version = "2.5.2"
+
     implementation "com.google.accompanist:accompanist-systemuicontroller:0.17.0"
     implementation "com.google.accompanist:accompanist-pager:0.26.5-rc"
     implementation "com.google.accompanist:accompanist-pager-indicators:0.26.5-rc"
-    def lottieVersion = "5.2.0"
     implementation "com.airbnb.android:lottie-compose:$lottieVersion"
 
     implementation("io.coil-kt:coil-compose:2.2.2")
 
     implementation "androidx.compose.material:material-icons-extended:$compose_version"
 
-    def nav_version = "2.5.2"
     implementation("androidx.navigation:navigation-compose:$nav_version")
 
     //QR generator
@@ -88,9 +89,6 @@ dependencies {
 
     //Play services
     implementation 'com.google.android.gms:play-services-auth:20.3.0'
-
-    //FaceBook
-    implementation 'com.facebook.android:facebook-login:latest.release'
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation "androidx.compose.ui:ui:$compose_version"

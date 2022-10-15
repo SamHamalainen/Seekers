@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.screens
 
 import android.util.Log
 import android.widget.Toast
@@ -10,11 +10,12 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.seekers.*
+import com.example.seekers.general.NavRoutes
 import com.example.seekers.general.QRScanner
+import com.example.seekers.viewModels.ScannerViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -63,8 +64,8 @@ fun QrScannerScreen(
                     navController.navigate(NavRoutes.StartGame.route)
                 } else {
                     Log.d("lobbyJoin", "lobby max: ${lobby?.maxPlayers}")
-                    vm.firestore.addPlayer(player, it)
-                    vm.firestore.updateUser(
+                    FirebaseHelper.addPlayer(player, it)
+                    FirebaseHelper.updateUser(
                         FirebaseHelper.uid!!,
                         mapOf(Pair("currentGameId", it))
                     )
@@ -82,38 +83,6 @@ fun QrScannerScreen(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = "Need camera permission")
         }
-    }
-}
-
-class ScannerViewModel : ViewModel() {
-    companion object {
-        const val TAG = "SCANNER_VIEW_MODEL"
-    }
-
-    val firestore = FirebaseHelper
-    val lobby = MutableLiveData<Lobby>()
-    val playersInLobby = MutableLiveData<Int>()
-
-    suspend fun getLobby(gameId: String): Boolean {
-        firestore.getLobby(gameId).addSnapshotListener { data, e ->
-            data ?: kotlin.run {
-                Log.e(TAG, "getLobby: ", e)
-                return@addSnapshotListener
-            }
-            lobby.value = data.toObject(Lobby::class.java)
-        }
-        return true
-    }
-
-    suspend fun getNumberOfPlayersInLobby(gameId: String): Boolean {
-        firestore.getPlayers(gameId).addSnapshotListener { data, e ->
-            data ?: kotlin.run {
-                Log.e(TAG, "getLobby: ", e)
-                return@addSnapshotListener
-            }
-            playersInLobby.postValue(data.documents.size)
-        }
-        return true
     }
 }
 

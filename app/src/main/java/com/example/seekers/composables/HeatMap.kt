@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.seekers.general.avatarListWithBg
 import com.example.seekers.general.getCornerCoords
 import com.example.seekers.general.toGrayscale
 import com.google.android.gms.maps.model.BitmapDescriptorFactory

@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -35,8 +37,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.seekers.general.AvatarIcon
+import com.example.seekers.general.avatarList
+import com.example.seekers.general.secondsToText
 import com.example.seekers.ui.theme.Powder
+import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.SizzlingRed
+import com.example.seekers.viewModels.HeatMapViewModel
 import java.util.*
 
 @Composable
@@ -287,6 +293,66 @@ fun PowerActiveIndicator(modifier: Modifier = Modifier, power: Power, countdown:
             modifier = Modifier
                 .size(64.dp)
         )
+    }
+}
+
+@Composable
+fun Jammer() {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Text(text = "You have been jammed", modifier = Modifier.align(Alignment.Center))
+        }
+    }
+}
+
+@Composable
+fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boolean) {
+    Box {
+        IconButton(
+            onClick = { onClick() },
+            content = {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = "news",
+                        tint = Raisin
+                    )
+                }
+            })
+        if (hasNew) {
+            Surface(
+                color = Color.Red, shape = CircleShape, modifier = Modifier
+                    .size(8.dp)
+                    .align(
+                        Alignment.TopEnd
+                    )
+            ) {}
+        }
+    }
+}
+
+@Composable
+fun GameTimer(vm: HeatMapViewModel) {
+    val countdown by vm.countdown.observeAsState()
+    countdown?.let {
+        Row(
+            modifier = Modifier
+                .border(BorderStroke(1.dp, Raisin))
+                .padding(2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(Icons.Default.Alarm, contentDescription = "", tint = Raisin)
+            Box(modifier = Modifier.width(90.dp), contentAlignment = Alignment.Center) {
+                val timeText = secondsToText(it)
+                if (timeText == "Time's up!")
+                    Text(text = timeText, color = Raisin, fontSize = 16.sp)
+                else
+                    Text(text = timeText, color = Raisin, fontSize = 20.sp)
+            }
+        }
     }
 }
 

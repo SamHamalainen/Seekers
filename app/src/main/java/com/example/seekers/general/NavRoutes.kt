@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.general
 
 sealed class NavRoutes(val route: String) {
     object StartGame: NavRoutes("StartGame")

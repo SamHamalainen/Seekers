@@ -1,7 +1,6 @@
-package com.example.seekers
+package com.example.seekers.composables
 
 import android.annotation.SuppressLint
-import android.graphics.Paint
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -9,16 +8,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.seekers.general.CustomButton
 import com.example.seekers.general.VerticalSlider
 import com.example.seekers.ui.theme.*
+import com.example.seekers.viewModels.LobbyCreationScreenViewModel
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
-import com.google.maps.android.ktx.utils.withSphericalOffset
 
 @SuppressLint("MissingPermission")
 @Composable
