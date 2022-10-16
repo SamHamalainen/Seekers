@@ -48,8 +48,8 @@ fun GameEndScreen(
         }
         Spacer(modifier = Modifier.height(20.dp))
     }
-    BackHandler(enabled = false) {
-
+    BackHandler(enabled = true) {
+        // Just to disable going back into the game in EndGameScreen
     }
 
 }

@@ -42,6 +42,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * The main activity where Google login is handled and Firebase initialized
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var oneTapClient: SignInClient
@@ -91,6 +94,7 @@ class MainActivity : ComponentActivity() {
                 e.localizedMessage?.let { Log.d(TAG, it) }
             }
 
+        // Initialize Firebase
         FirebaseApp.initializeApp(this)
 
         setContent {
@@ -101,6 +105,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Jetpack Compose navigation host
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun MyAppNavHost(permissionVM: PermissionsViewModel = viewModel()) {
@@ -113,7 +118,7 @@ fun MyAppNavHost(permissionVM: PermissionsViewModel = viewModel()) {
         navController = navController,
         startDestination = NavRoutes.MainScreen.route
     ) {
-        // Login or Sign up
+        // Login
         composable(NavRoutes.MainScreen.route) {
             MainScreen(navController = navController)
         }

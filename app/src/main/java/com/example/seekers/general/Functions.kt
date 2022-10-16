@@ -14,6 +14,8 @@ import io.github.g0dkar.qrcode.QRCode
 import java.io.ByteArrayOutputStream
 import kotlin.math.*
 
+// Generate QRCode that will be read as a string when scanned
+// uses https://github.com/g0dkar/qrcode-kotlin library
 fun generateQRCode(data: String): Bitmap {
     val fileOut = ByteArrayOutputStream()
 
@@ -25,7 +27,8 @@ fun generateQRCode(data: String): Bitmap {
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
-fun getAvatarId(id: Int) : Int {
+// Get correct avatar based on passed in value
+fun getAvatarId(id: Int): Int {
     return when (id) {
         0 -> R.drawable.bee
         1 -> R.drawable.chameleon
@@ -42,34 +45,37 @@ fun getAvatarId(id: Int) : Int {
     }
 }
 
-fun isEmailValid(email: String) :Boolean {
+// Check if email is in correct format using a regex.
+fun isEmailValid(email: String): Boolean {
     val EMAIL_REGEX = "^[A-Za-z](.*)([@]{1})(.{1,})(\\.)(.{1,})"
     val result = EMAIL_REGEX.toRegex().matches(email)
     Log.d("validation", result.toString())
     return result
 }
-fun isPasswordValid(password: String) :Boolean {
+
+// Check if password is strong enough using a regex.
+// Requires:
+// - Minimum 8 characters
+// - At least 1 capital letter
+// - At least 1 number
+fun isPasswordValid(password: String): Boolean {
     val PASSWORD_REGEX = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$"
     val result = PASSWORD_REGEX.toRegex().matches(password)
     Log.d("validation", result.toString())
     return result
 }
 
-fun Bitmap.toGrayscale():Bitmap{
+// Added custom function to Bitmap. Is used to convert a bitmap into a grayscaled version.
+fun Bitmap.toGrayscale(): Bitmap {
 
-    val matrix = ColorMatrix().apply {
-        setSaturation(0f)
-    }
+    val matrix = ColorMatrix().apply { setSaturation(0f) }
     val filter = ColorMatrixColorFilter(matrix)
-
-    val paint = Paint().apply {
-        colorFilter = filter
-    }
-
+    val paint = Paint().apply { colorFilter = filter }
     Canvas(this).drawBitmap(this, 0f, 0f, paint)
     return this
 }
 
+// Converts seconds to a more readable format. Returns converted version as string
 fun secondsToText(seconds: Int): String {
     if (seconds == 0) {
         return "Time's up!"
@@ -85,8 +91,11 @@ fun secondsToText(seconds: Int): String {
     return "${hours.toTimeString()}:${minutes.toTimeString()}:${secs.toTimeString()}"
 }
 
+// Converting Integers under 10 to "clock format" for example 8 would be 08
+// otherwise just return Int as string
 fun Int.toTimeString() = if (this < 10) "0$this" else this.toString()
 
+// Get the bounds of the map so you are not able to go far away from playing area
 fun getBounds(center: LatLng, radius: Int): LatLngBounds {
     val multiplier = cos(PI / 4)
     val sw = center.withSphericalOffset(radius.div(multiplier), 225.0)
@@ -94,6 +103,8 @@ fun getBounds(center: LatLng, radius: Int): LatLngBounds {
     return LatLngBounds(sw, ne)
 }
 
+// Getting the corner coordinates within bounds.
+// To put a darker polygon maximum size outside of the playing area
 fun getCornerCoords(center: LatLng, radius: Int): List<LatLng> {
     val ne = center.withSphericalOffset(radius * 10.0, 45.0)
     val se = center.withSphericalOffset(radius * 10.0, 135.0)
@@ -102,6 +113,8 @@ fun getCornerCoords(center: LatLng, radius: Int): List<LatLng> {
     return listOf(ne, se, sw, nw)
 }
 
+// Getting the coordinates of the edge of the playing area circle
+// Used for making a hole inside of the darker polygon outside the playing area
 fun getCircleCoords(center: LatLng, radius: Int): List<LatLng> {
     val list = mutableListOf<LatLng>()
     (0..360).forEach {
@@ -110,7 +123,8 @@ fun getCircleCoords(center: LatLng, radius: Int): List<LatLng> {
     return list
 }
 
-//source: https://stackoverflow.com/questions/6048975/google-maps-v3-how-to-calculate-the-zoom-level-for-a-given-bounds
+// Setting the zoom level based on the bounds given
+// source: https://stackoverflow.com/questions/6048975/google-maps-v3-how-to-calculate-the-zoom-level-for-a-given-bounds
 fun getBoundsZoomLevel(bounds: LatLngBounds, mapDim: Size): Double {
     val WORLD_DIM = Size(256, 256)
     val ZOOM_MAX = 21.toDouble()
@@ -143,6 +157,8 @@ fun getBoundsZoomLevel(bounds: LatLngBounds, mapDim: Size): Double {
     return minOf(latZoom, lngZoom, ZOOM_MAX)
 }
 
+// Change the soft input mode between adjustPan and adjustResize
+// Changes the way content is handled when soft keyboard is open
 fun adjustContentWithKB(context: Context, isPan: Boolean = false) {
     if (isPan) {
         (context as Activity).window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)

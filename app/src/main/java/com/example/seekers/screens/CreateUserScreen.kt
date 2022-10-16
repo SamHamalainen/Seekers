@@ -28,14 +28,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.navArgument
 import com.example.seekers.general.CustomButton
 import com.example.seekers.general.CustomOutlinedTextField
 import com.example.seekers.general.NavRoutes
+import com.example.seekers.general.ValidationErrorRow
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.emailAvailable
 import com.example.seekers.viewModels.AuthenticationViewModel
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * This screen is for creating a new account with email and password validation.
+ */
 @Composable
 fun CreateUserScreen(
     vm: AuthenticationViewModel = viewModel(),
@@ -46,18 +51,7 @@ fun CreateUserScreen(
     val password by vm.password.observeAsState(TextFieldValue(""))
     val passwordError by vm.passwordValidationError.observeAsState(null)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        val backBtn = Icons.Filled.ArrowBack
-        val desc = "Back Button"
-        IconButton(
-            onClick = { navController.navigate(NavRoutes.MainScreen.route) },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(20.dp)
-        ) {
-            Icon(imageVector = backBtn, desc, modifier = Modifier.size(32.dp))
-        }
-    }
+    BackArrowButton(navController)
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -96,6 +90,24 @@ fun CreateUserScreen(
     }
 }
 
+// Back button for navigating back to LoginScreen
+@Composable
+fun BackArrowButton(navController: NavController) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        val backBtn = Icons.Filled.ArrowBack
+        val desc = "Back Button"
+        IconButton(
+            onClick = { navController.navigate(NavRoutes.MainScreen.route) },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(20.dp)
+        ) {
+            Icon(imageVector = backBtn, desc, modifier = Modifier.size(32.dp))
+        }
+    }
+}
+
+// Password TextField with validation so users create users with stronger passwords.
 @Composable
 fun PasswordTextFieldWithValidation(vm: AuthenticationViewModel) {
     val password by vm.password.observeAsState(TextFieldValue(""))
@@ -133,6 +145,7 @@ fun PasswordTextFieldWithValidation(vm: AuthenticationViewModel) {
     }
 }
 
+// Email TextField that checks if email is already in use and correct email format
 @Composable
 fun EmailTextFieldWithValidation(vm: AuthenticationViewModel) {
     val email by vm.email.observeAsState(TextFieldValue(""))
@@ -190,6 +203,7 @@ fun EmailTextFieldWithValidation(vm: AuthenticationViewModel) {
     }
 }
 
+// Shows message under email TextField when email is available
 @Composable
 fun EmailAvailableMessage() {
     val width = LocalConfiguration.current.screenWidthDp * 0.8
@@ -204,6 +218,7 @@ fun EmailAvailableMessage() {
     }
 }
 
+// Custom error message when password is not strong enough
 @Composable
 fun PasswordValidationErrorMessage() {
     val width = LocalConfiguration.current.screenWidthDp * 0.8
@@ -226,20 +241,4 @@ fun PasswordValidationErrorMessage() {
             ValidationErrorRow(text = "\u2022 1 Number")
         }
     }
-}
-
-@Composable
-fun ValidationErrorRow(
-    modifier: Modifier = Modifier,
-    text: String,
-    fontWeight: FontWeight = FontWeight.Normal,
-    fontSize: TextUnit = 12.sp
-) {
-    Text(
-        text = text,
-        color = Color.Red,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
-        modifier = modifier
-    )
 }

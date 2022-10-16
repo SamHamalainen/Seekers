@@ -19,7 +19,7 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
 
     // Players
     val maxPlayers = MutableLiveData<Int>()
-    val players = MutableLiveData(listOf<Player>())
+    val playersInLobby = MutableLiveData(listOf<Player>())
     val isCreator = MutableLiveData<Boolean>()
 
     // Lobby
@@ -48,6 +48,10 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
     val showMaxPlayersError = MutableLiveData(false)
     val showTimeLimitError = MutableLiveData(false)
     val showCountDownError = MutableLiveData(false)
+    val showQRDialog = MutableLiveData(false)
+    val showLeaveGameDialog = MutableLiveData(false)
+    val showDismissLobbyDialog = MutableLiveData(false)
+    val showEditRulesDialog = MutableLiveData(false)
 
     // Map functions
 
@@ -81,7 +85,7 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
     fun removePlayer(gameId: String, playerId: String) =
         firestore.removePlayer(gameId = gameId, playerId = playerId)
 
-    fun getPlayers(gameId: String) {
+    fun getPlayersInLobby(gameId: String) {
         firestore.getPlayers(gameId)
             .addSnapshotListener { list, e ->
                 list ?: run {
@@ -89,7 +93,7 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
                     return@addSnapshotListener
                 }
                 val playerList = list.toObjects(Player::class.java)
-                players.postValue(playerList)
+                playersInLobby.postValue(playerList)
             }
     }
 
@@ -142,6 +146,17 @@ class LobbyCreationScreenViewModel(application: Application) : AndroidViewModel(
 
     fun updateCountdown(newVal: Int?) {
         countdown.value = newVal
+    }
+    fun updateShowDialog(
+        qrDialog: Boolean = false,
+        leaveGame: Boolean = false,
+        dismissLobby: Boolean = false,
+        editRules: Boolean = false
+    ) {
+        showQRDialog.value = qrDialog
+        showLeaveGameDialog.value = leaveGame
+        showDismissLobbyDialog.value = dismissLobby
+        showEditRulesDialog.value = editRules
     }
 
 }

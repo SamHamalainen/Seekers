@@ -5,14 +5,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.material.Card
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -23,9 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.seekers.R
 import com.example.seekers.composables.AreaSelectionMap
-import com.example.seekers.general.CustomButton
-import com.example.seekers.general.Input
-import com.example.seekers.general.NavRoutes
+import com.example.seekers.general.*
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.utils.*
 import com.example.seekers.viewModels.LobbyCreationScreenViewModel
@@ -37,6 +36,13 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import java.util.*
 
+/**
+ * This screen gives you the option of choosing the game rules
+ * - maxPlayers
+ * - timeLimit
+ * - countdown
+ * - radius and center location of circle
+ */
 @Composable
 fun LobbyCreationScreen(
     vm: LobbyCreationScreenViewModel = viewModel(),
@@ -54,21 +60,22 @@ fun LobbyCreationScreen(
     val currentLocation by vm.currentLocation.observeAsState()
     val showMap by vm.showMap.observeAsState(false)
     val isLocationAllowed by permissionVM.fineLocPerm.observeAsState(false)
-
     var initialLocationSet by remember { mutableStateOf(false) }
     val cameraState = rememberCameraPositionState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp * 0.3
 
+    // When launched check permissions
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
     }
 
+    // Start receiving location updates for the map when defining play area.
     LaunchedEffect(isLocationAllowed) {
         if (isLocationAllowed) {
             vm.requestLoc()
         }
     }
 
+    // Set the camera of the map to users current location
     if (!initialLocationSet) {
         LaunchedEffect(currentLocation) {
             currentLocation?.let {
@@ -78,6 +85,7 @@ fun LobbyCreationScreen(
         }
     }
 
+    // When not defining play area show other TextFields
     if (!showMap) {
         Column(
             Modifier
@@ -91,33 +99,29 @@ fun LobbyCreationScreen(
                     .fillMaxWidth()
                     .weight(3f), contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
                         text = stringResource(id = R.string.lobby_creation).uppercase(Locale.ROOT),
                         fontSize = 32.sp
                     )
-                    Box(
-                        modifier = Modifier
-                            .width(120.dp)
-                            .height(1.dp)
-                            .background(color = Raisin)
-                    )
+                    Underline(width = 120.dp)
                 }
-
             }
-
             Column(Modifier.fillMaxWidth()) {
                 LobbyCreationForm(vm = vm)
                 Spacer(modifier = Modifier.height(16.dp))
                 DefineAreaButton(vm, "DEFINE PLAY AREA")
             }
-
             Spacer(modifier = Modifier.weight(1f))
             CustomButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.create_lobby)
             ) {
+                // When game rules are over the minimum amounts create new lobby document with current user as player
+                // then navigate to the LobbyQRScreen
                 if (maxPlayers!! >= 2 && timeLimit!! >= 10 && radius != null && countdown!! >= 30) {
                     if (center == null) {
                         Toast.makeText(
@@ -153,6 +157,7 @@ fun LobbyCreationScreen(
                         navController.navigate(NavRoutes.LobbyQR.route + "/$gameId")
                     }
                 } else {
+                    // when under minimum amounts show correct error messages
                     if (maxPlayers!! < 2) {
                         vm.showMaxPlayersError.value = true
                         vm.maxPlayersError.value = true
@@ -161,7 +166,7 @@ fun LobbyCreationScreen(
                         vm.showTimeLimitError.value = true
                         vm.timeLimitError.value = true
                     }
-                    if(countdown!! < 30) {
+                    if (countdown!! < 30) {
                         vm.showCountDownError.value = true
                         vm.countDownError.value = true
                     }
@@ -169,6 +174,7 @@ fun LobbyCreationScreen(
             }
         }
     } else {
+        // else show map (defining play area)
         if (isLocationAllowed) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Icon(imageVector = Icons.Filled.Cancel, contentDescription = "cancel",
@@ -203,6 +209,7 @@ fun LobbyCreationScreen(
     }
 }
 
+// Button to choose playing area
 @Composable
 fun DefineAreaButton(vm: LobbyCreationScreenViewModel, text: String) {
     Card(
@@ -245,6 +252,7 @@ fun DefineAreaButton(vm: LobbyCreationScreenViewModel, text: String) {
     }
 }
 
+// Form for creating lobby, all fields have validation when not over minimum amounts
 @Composable
 fun LobbyCreationForm(modifier: Modifier = Modifier, vm: LobbyCreationScreenViewModel) {
     val maxPlayers by vm.maxPlayers.observeAsState()
@@ -267,7 +275,10 @@ fun LobbyCreationForm(modifier: Modifier = Modifier, vm: LobbyCreationScreenView
                 isError = maxPlayersError,
                 keyboardType = KeyboardType.Number,
                 onChangeValue = { vm.updateMaxPlayers(it.toIntOrNull()) })
-            if (showMaxPlayersError) ValidationErrorRow(text = "Minimum 2 players", modifier = Modifier.padding(top = 5.dp))
+            if (showMaxPlayersError) ValidationErrorRow(
+                text = "Minimum 2 players",
+                modifier = Modifier.padding(top = 5.dp)
+            )
         }
         Column() {
             Input(
@@ -276,7 +287,10 @@ fun LobbyCreationForm(modifier: Modifier = Modifier, vm: LobbyCreationScreenView
                 isError = timeLimitError,
                 keyboardType = KeyboardType.Number,
                 onChangeValue = { vm.updateTimeLimit(it.toIntOrNull()) })
-            if (showTimeLimitError) ValidationErrorRow(text = "Minimum 10 minutes", modifier = Modifier.padding(top = 5.dp))
+            if (showTimeLimitError) ValidationErrorRow(
+                text = "Minimum 10 minutes",
+                modifier = Modifier.padding(top = 5.dp)
+            )
         }
         Column() {
             Input(
@@ -285,7 +299,10 @@ fun LobbyCreationForm(modifier: Modifier = Modifier, vm: LobbyCreationScreenView
                 isError = countDownError,
                 keyboardType = KeyboardType.Number,
                 onChangeValue = { vm.updateCountdown(it.toIntOrNull()) })
-            if (showCountDownError) ValidationErrorRow(text = "Minimum 30 seconds", modifier = Modifier.padding(top = 5.dp))
+            if (showCountDownError) ValidationErrorRow(
+                text = "Minimum 30 seconds",
+                modifier = Modifier.padding(top = 5.dp)
+            )
         }
 
     }

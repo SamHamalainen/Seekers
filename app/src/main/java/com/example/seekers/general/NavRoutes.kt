@@ -1,5 +1,8 @@
 package com.example.seekers.general
 
+/**
+ * Navigation routes for compose navigation
+ */
 sealed class NavRoutes(val route: String) {
     object StartGame: NavRoutes("StartGame")
     object MainScreen: NavRoutes("MainScreen")

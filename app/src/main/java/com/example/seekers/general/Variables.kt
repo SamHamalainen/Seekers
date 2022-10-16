@@ -2,6 +2,7 @@ package com.example.seekers.general
 
 import com.example.seekers.R
 
+// Avatar list with their corresponding resourceId
 var avatarList = listOf(
     R.drawable.bee,
     R.drawable.chameleon,
@@ -18,6 +19,8 @@ var avatarList = listOf(
     R.drawable.avatar_empty
 )
 
+// List of avatars with circle background already put behind them
+// List of their corresponding resourceId
 var avatarListWithBg = listOf(
     R.drawable.bee_with_background,
     R.drawable.chameleon_with_background,

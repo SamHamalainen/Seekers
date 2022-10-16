@@ -5,35 +5,51 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.seekers.utils.FirebaseHelper
-import com.example.seekers.utils.Lobby
 import com.example.seekers.general.isEmailValid
 import com.example.seekers.general.isPasswordValid
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.Lobby
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
+/**
+ * This ViewModel is used for LoginScreen, CreateUserScreen, MainScreen
+ * It handles Authentication with Firebase.
+ * Validates credentials of logging in and creating the user
+ */
 class AuthenticationViewModel() : ViewModel() {
 
+    // Firestore
     var fireBaseAuth = Firebase.auth
+    var firestore = FirebaseHelper
+
+    // User
     var user = MutableLiveData<FirebaseUser>(null)
-    var userIsInUsers = MutableLiveData<Boolean>()
+    var userExistsInUsers = MutableLiveData<Boolean>()
+
+    // Email
+    var email = MutableLiveData<TextFieldValue>()
     var emailValidationError = MutableLiveData<Boolean>()
     var emailIsAvailable = MutableLiveData<Boolean>()
+
+    // Password
+    var password = MutableLiveData<TextFieldValue>()
     var passwordValidationError = MutableLiveData<Boolean>()
-    var firestore = FirebaseHelper
+
+    // Game
     val currentGameId = MutableLiveData<String>()
     val gameStatus = MutableLiveData<Int>()
-    var email = MutableLiveData<TextFieldValue>()
-    var password = MutableLiveData<TextFieldValue>()
 
     fun updatePasswordTextField(newValue: TextFieldValue) {
         password.value = newValue
     }
+
     fun updateEmailTextField(newValue: TextFieldValue) {
         email.value = newValue
     }
 
+    // Validate email and set error based on returned value
     fun validateEmail(email: String) {
         if (!isEmailValid(email)) {
             emailValidationError.postValue(true)
@@ -41,6 +57,7 @@ class AuthenticationViewModel() : ViewModel() {
             emailValidationError.postValue(false)
     }
 
+    // Validate password and set error based on returned value
     fun validatePassword(password: String): Boolean {
         return if (!isPasswordValid(password)) {
             passwordValidationError.postValue(true)
@@ -51,17 +68,18 @@ class AuthenticationViewModel() : ViewModel() {
         }
     }
 
-    fun updateUserDoc(userId: String, changeMap: Map<String, Any>) =
-        firestore.updateUser(userId, changeMap)
-
+    // Creates user document in Firestore Database
     fun addUserDoc(userId: String, changeMap: Map<String, Any>) {
         firestore.addUser(changeMap, userId)
     }
 
+    // Sets firebaseUser as the user
     fun setUser(firebaseUser: FirebaseUser?) {
         user.value = firebaseUser
     }
 
+    // Checks if email is available when creating an account
+    // Compares email TextField input with all existing users "email" field
     fun checkEmailAvailability(email: String) {
         firestore.getUsers().whereEqualTo("email", email).get().addOnSuccessListener { result ->
             if (result.documents.size == 0) {
@@ -73,15 +91,17 @@ class AuthenticationViewModel() : ViewModel() {
         }
     }
 
+    // Check if user exists in Users collection in Firestore Database
     fun checkUserInUsers(userId: String) {
         firestore.usersRef.get().addOnSuccessListener {
             val userList = it.documents.map { docs ->
                 docs.id
             }
-            userIsInUsers.postValue(userList.contains(userId))
+            userExistsInUsers.postValue(userList.contains(userId))
         }
     }
 
+    // Check if player is in a game and returns the gameId
     fun checkCurrentGame(playerId: String) {
         firestore.getUser(playerId).get()
             .addOnFailureListener {
@@ -95,11 +115,12 @@ class AuthenticationViewModel() : ViewModel() {
             }
     }
 
+    // Checks the games current status
     fun checkGameStatus(gameId: String) {
         firestore.getLobby(gameId).get()
             .addOnSuccessListener {
-                val lobby = it.toObject(Lobby::class.java)
-                lobby?.let { lobby ->
+                val fetchedLobby = it.toObject(Lobby::class.java)
+                fetchedLobby?.let { lobby ->
                     println("checkGameStatus " + lobby.status.toString())
                     gameStatus.postValue(lobby.status)
                 }

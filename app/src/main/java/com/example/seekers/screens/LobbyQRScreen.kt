@@ -44,6 +44,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * This screen shows the lobby and players inside as list. You are able to show QR code to
+ * others
+ */
 @Composable
 fun LobbyQRScreen(
     navController: NavHostController,
@@ -52,25 +56,31 @@ fun LobbyQRScreen(
     permissionVM: PermissionsViewModel,
 ) {
     val context = LocalContext.current
-    val bitmap = generateQRCode(gameId)
-    val players by vm.players.observeAsState(listOf())
+    val bitmapQR = generateQRCode(gameId)
+    val playersInLobby by vm.playersInLobby.observeAsState(listOf())
     val lobby by vm.lobby.observeAsState()
     val isCreator by vm.isCreator.observeAsState()
-    var showLeaveDialog by remember { mutableStateOf(false) }
-    var showDismissDialog by remember { mutableStateOf(false) }
-    var showEditRulesDialog by remember { mutableStateOf(false) }
-    var showQRDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    // Dialogs
+    val showLeaveDialog by vm.showLeaveGameDialog.observeAsState()
+    val showDismissDialog by vm.showDismissLobbyDialog.observeAsState()
+    val showEditRulesDialog by vm.showEditRulesDialog.observeAsState()
+    val showQRDialog by vm.showQRDialog.observeAsState()
 
+    // When launched check permissions and fetch lobby details and current user
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
         scope.launch(Dispatchers.IO) {
-            vm.getPlayers(gameId)
+            vm.getPlayersInLobby(gameId)
             vm.getLobby(gameId)
             vm.getPlayer(gameId, FirebaseHelper.uid!!)
         }
     }
 
+    // When lobby has been fetched check its status and do action based on it
+    // Deleted -> lobby closed, update user to not be in a game anymore, navigate back to StartGameScreen
+    // Countdown -> navigate to CountdownScreen after small delay
+    // Active -> Navigate to HeatMapScreen
     LaunchedEffect(lobby) {
         lobby?.let {
             when (it.status) {
@@ -99,9 +109,11 @@ fun LobbyQRScreen(
         }
     }
 
-    LaunchedEffect(players) {
-        if (players.isNotEmpty()) {
-            val currentPlayer = players.find { it.playerId == FirebaseHelper.uid!! }
+    // Checking if current user is in the list of players in lobby
+    // When player has been kicked out of the lobby they will be notified and redirected to StartGameScreen.
+    LaunchedEffect(playersInLobby) {
+        if (playersInLobby.isNotEmpty()) {
+            val currentPlayer = playersInLobby.find { it.playerId == FirebaseHelper.uid!! }
             if (currentPlayer == null) {
                 Toast.makeText(context, "You were kicked from the lobby", Toast.LENGTH_LONG).show()
                 vm.updateUser(FirebaseHelper.uid!!, mapOf(Pair("currentGameId", "")))
@@ -115,40 +127,7 @@ fun LobbyQRScreen(
             backgroundColor = Color.Transparent,
             elevation = 0.dp
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
-                IconButton(modifier = Modifier.align(Alignment.CenterStart), onClick = {
-                    showQRDialog = true
-                }) {
-                    Icon(Icons.Outlined.QrCode2, "QR", modifier = Modifier.size(40.dp))
-                }
-                Text(
-                    text = "Scan QR to join!",
-                    fontSize = 20.sp,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                Card(
-                    backgroundColor = SizzlingRed,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .clickable {
-                            if (isCreator == true) {
-                                showDismissDialog = true
-                            } else {
-                                showLeaveDialog = true
-                            }
-                        }) {
-                    Icon(
-                        imageVector = Icons.Filled.Logout,
-                        contentDescription = "Leave",
-                        tint = Color.White,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
+            TopAppBarLobby(vm = vm)
         }
     }
     ) {
@@ -159,14 +138,18 @@ fun LobbyQRScreen(
         ) {
             Text(text = "Participants", fontSize = 20.sp, modifier = Modifier.padding(15.dp))
             Participants(
-                Modifier
+                modifier = Modifier
                     .weight(3f)
-                    .padding(horizontal = 15.dp), players, isCreator == true, vm, gameId
+                    .padding(horizontal = 15.dp),
+                players = playersInLobby,
+                isCreator = isCreator == true,
+                vm = vm,
+                gameId = gameId
             )
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Column {
                     CustomButton(text = "${if (isCreator == true) "Edit" else "Check"} Rules") {
-                        showEditRulesDialog = true
+                        vm.updateShowDialog(editRules = true)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isCreator == true) {
@@ -183,52 +166,99 @@ fun LobbyQRScreen(
                 }
             }
         }
-        if (showQRDialog) {
+        if (showQRDialog == true) {
             QRDialog(
-                bitmap = bitmap,
-                onDismissRequest = { showQRDialog = false }
+                bitmap = bitmapQR,
+                onDismissRequest = { vm.updateShowDialog(qrDialog = false) }
             )
         }
-        if (showEditRulesDialog) {
+        if (showEditRulesDialog == true) {
             EditRulesDialog(
                 vm,
                 gameId,
                 isCreator == true,
-                onDismissRequest = { showEditRulesDialog = false })
+                onDismissRequest = { vm.updateShowDialog(editRules = false) })
         }
-        if (showLeaveDialog) {
-            LeaveGameDialog(onDismissRequest = { showLeaveDialog = false }, onConfirm = {
-                vm.removePlayer(gameId, FirebaseHelper.uid!!)
-                vm.updateUser(
-                    FirebaseHelper.uid!!,
-                    mapOf(Pair("currentGameId", ""))
-                )
-                navController.navigate(NavRoutes.StartGame.route)
-            })
+        if (showLeaveDialog == true) {
+            LeaveGameDialog(
+                onDismissRequest = { vm.updateShowDialog(leaveGame = false) },
+                onConfirm = {
+                    vm.removePlayer(gameId, FirebaseHelper.uid!!)
+                    vm.updateUser(
+                        FirebaseHelper.uid!!,
+                        mapOf(Pair("currentGameId", ""))
+                    )
+                    navController.navigate(NavRoutes.StartGame.route)
+                })
         }
-        if (showDismissDialog) {
-            DismissLobbyDialog(onDismissRequest = { showDismissDialog = false }, onConfirm = {
-                val changeMap = mapOf(
-                    Pair("status", LobbyStatus.DELETED.ordinal)
-                )
-                vm.updateUser(
-                    FirebaseHelper.uid!!,
-                    mapOf(Pair("currentGameId", ""))
-                )
-                vm.updateLobby(changeMap, gameId)
-            })
+        if (showDismissDialog == true) {
+            DismissLobbyDialog(
+                onDismissRequest = { vm.updateShowDialog(dismissLobby = false) },
+                onConfirm = {
+                    val changeMap = mapOf(
+                        Pair("status", LobbyStatus.DELETED.ordinal)
+                    )
+                    vm.updateUser(
+                        FirebaseHelper.uid!!,
+                        mapOf(Pair("currentGameId", ""))
+                    )
+                    vm.updateLobby(changeMap, gameId)
+                })
         }
+        // When user presses system back button show correct dialog
+        // prevents user from navigating back to lobby creation
         BackHandler(enabled = true) {
             if (isCreator == true) {
-                showDismissDialog = true
+                vm.updateShowDialog(dismissLobby = true)
             } else {
-                showLeaveDialog = true
+                vm.updateShowDialog(leaveGame = true)
             }
         }
     }
 
 }
 
+// Custom TopAppBar for lobby
+@Composable
+fun TopAppBarLobby(vm: LobbyCreationScreenViewModel) {
+    val isCreator by vm.isCreator.observeAsState()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        IconButton(modifier = Modifier.align(Alignment.CenterStart), onClick = {
+            vm.updateShowDialog(qrDialog = true)
+        }) {
+            Icon(Icons.Outlined.QrCode2, "QR", modifier = Modifier.size(40.dp))
+        }
+        Text(
+            text = "Scan QR to join!",
+            fontSize = 20.sp,
+            modifier = Modifier.align(Alignment.Center)
+        )
+        Card(
+            backgroundColor = SizzlingRed,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .clickable {
+                    if (isCreator == true) {
+                        vm.updateShowDialog(dismissLobby = true)
+                    } else {
+                        vm.updateShowDialog(leaveGame = true)
+                    }
+                }) {
+            Icon(
+                imageVector = Icons.Filled.Logout,
+                contentDescription = "Leave",
+                tint = Color.White,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+    }
+}
+
+// List of Participants
 @Composable
 fun Participants(
     modifier: Modifier = Modifier,
@@ -237,6 +267,7 @@ fun Participants(
     vm: LobbyCreationScreenViewModel,
     gameId: String
 ) {
+    // remember PlayerCards index for kicking correct person
     var kickableIndex: Int? by remember { mutableStateOf(null) }
     LazyColumn(
         modifier = modifier,
@@ -245,6 +276,7 @@ fun Participants(
         item {
             Spacer(modifier = Modifier.height(4.dp))
         }
+        // List of players sorted that host is always on top
         itemsIndexed(players.sortedBy { it.inLobbyStatus }) { index, player ->
             PlayerCard(
                 player = player,
@@ -259,6 +291,7 @@ fun Participants(
 
 }
 
+// Individual PlayerCard shown in lobby with avatar and nickname
 @Composable
 fun PlayerCard(
     player: Player,

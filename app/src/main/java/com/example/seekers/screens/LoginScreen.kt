@@ -1,11 +1,9 @@
-package com.example.seekers
+package com.example.seekers.screens
 
 import android.content.Context
-import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.result.ActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -26,20 +24,26 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.seekers.R
 import com.example.seekers.general.*
+import com.example.seekers.googleRememberFirebaseAuthLauncher
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.viewModels.AuthenticationViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 
+/**
+ * Screen to choose login method. You can use email and password or directly with google account.
+ * If you don't have an account yet, you can create one with pressing the button on the bottom.
+ */
 @Composable
 fun LoginForm(
     vm: AuthenticationViewModel,
     navController: NavController,
 ) {
     var invalidCredentials by remember { mutableStateOf(false) }
+
     // Email
     var email by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -47,11 +51,14 @@ fun LoginForm(
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    // Other
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp * 0.8
-    adjustContentWithKB(context, isPan = true)
     val height = LocalConfiguration.current.screenHeightDp
+
+    // Change how content adjust with soft keyboard opening
+    adjustContentWithKB(context, isPan = true)
 
     Column(
         verticalArrangement = Arrangement.SpaceEvenly,
@@ -154,9 +161,13 @@ fun LoginForm(
                     }
             )
         }
+        BackHandler(enabled = true) {
+            // Just to disable going back to StartGameScreen after logging out.
+        }
     }
 }
 
+// Login with Google button
 @Composable
 fun GoogleButton(
     context: Context,

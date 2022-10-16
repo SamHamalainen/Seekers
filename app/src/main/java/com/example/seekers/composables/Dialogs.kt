@@ -37,7 +37,6 @@ import com.example.seekers.R
 import com.example.seekers.general.*
 import com.example.seekers.screens.DefineAreaButton
 import com.example.seekers.screens.RadarScreen
-import com.example.seekers.screens.ValidationErrorRow
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.viewModels.LobbyCreationScreenViewModel

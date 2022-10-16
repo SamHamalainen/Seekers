@@ -1,6 +1,7 @@
 package com.example.seekers.screens
 
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -26,11 +27,15 @@ import com.example.seekers.composables.LogOutDialog
 import com.example.seekers.composables.TutorialDialog
 import com.example.seekers.general.LogOutButton
 import com.example.seekers.general.NavRoutes
+import com.example.seekers.general.Underline
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
+/**
+ * This screen gives you the opportunity to create a lobby, join a lobby and watch a quick-start guide.
+ */
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun StartGameScreen(
@@ -38,10 +43,13 @@ fun StartGameScreen(
     permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
-    var showLogOutDialog by remember { mutableStateOf(false) }
     val buttonHeight = LocalConfiguration.current.screenHeightDp * 0.3
+
+    // Dialogs
+    var showLogOutDialog by remember { mutableStateOf(false) }
     var showTutorial by remember { mutableStateOf(false) }
 
+    // On the launch of this screen check for all needed permissions to play the game.
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
     }
@@ -110,6 +118,7 @@ fun StartGameScreen(
     }
 }
 
+// General button design for the StartGameScreen. Create Lobby, Join Lobby and Quick-Start buttons.
 @Composable
 fun StartScreenButton(
     buttonHeight: Double,
@@ -144,12 +153,7 @@ fun StartScreenButton(
             ) {
                 Column {
                     Text(text = text, fontSize = 22.sp)
-                    Box(
-                        modifier = Modifier
-                            .width(if (isTutorial) 80.dp else 50.dp)
-                            .height(1.dp)
-                            .background(color = Raisin)
-                    )
+                    Underline(width = if (isTutorial) 80.dp else 50.dp)
                 }
             }
         }

@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.FrameLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,9 +26,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
 import com.budiyev.android.codescanner.AutoFocusMode
 import com.budiyev.android.codescanner.CodeScanner
@@ -38,6 +39,10 @@ import com.budiyev.android.codescanner.ScanMode
 import com.example.seekers.ui.theme.*
 import java.util.*
 
+/**
+ * With this composable you are able to make a OutlinedTextField with custom colors and functions
+ * also has option to have trailing icon for example showing password button.
+ */
 @Composable
 fun CustomOutlinedTextField(
     value: TextFieldValue,
@@ -82,6 +87,9 @@ fun CustomOutlinedTextField(
     )
 }
 
+/**
+ * Custom OutLinedTextField that is used for basic input fields for example the lobby creation rules
+ */
 @Composable
 fun Input(
     modifier: Modifier = Modifier,
@@ -122,7 +130,10 @@ fun Input(
     }
 }
 
-
+/**
+ * QR scanner for reading QR codes
+ * Uses https://github.com/yuriy-budiyev/code-scanner library
+  */
 @Composable
 fun QRScanner(context: Context, onScanned: (String) -> Unit) {
     val scannerView = CodeScannerView(context)
@@ -151,6 +162,9 @@ fun QRScanner(context: Context, onScanned: (String) -> Unit) {
         })
 }
 
+/**
+ * Custom button with app themed colors and shape
+ */
 @Composable
 fun CustomButton(modifier: Modifier = Modifier, text: String, onClick: () -> Unit) {
     val width = LocalConfiguration.current.screenWidthDp * 0.8
@@ -167,6 +181,9 @@ fun CustomButton(modifier: Modifier = Modifier, text: String, onClick: () -> Uni
     }
 }
 
+/**
+ * Custom log out button with app themed colors and shape
+ */
 @Composable
 fun LogOutButton(modifier: Modifier = Modifier, text: String, onClick: () -> Unit) {
     Button(
@@ -183,46 +200,9 @@ fun LogOutButton(modifier: Modifier = Modifier, text: String, onClick: () -> Uni
     }
 }
 
-@Composable
-fun IconButton(
-    modifier: Modifier = Modifier,
-    resourceId: Int,
-    buttonText: String,
-    buttonColor: Color,
-    onClick: () -> Unit
-) {
-
-    Button(
-        border = BorderStroke(1.dp, Raisin),
-        onClick = onClick,
-        modifier = modifier
-            .height(50.dp),
-        shape = RoundedCornerShape(15),
-        colors = ButtonDefaults.buttonColors(buttonColor, contentColor = Raisin),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.CenterStart)
-            ) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    painter = painterResource(id = resourceId),
-                    modifier = Modifier
-                        .size(18.dp),
-                    contentDescription = "drawable_icons",
-                    tint = Color.Unspecified
-                )
-            }
-            Text(text = buttonText.uppercase(Locale.ROOT))
-        }
-    }
-}
-
+/**
+ * Custom vertical slider for adjusting the radius when defining the play area
+ */
 @Composable
 fun VerticalSlider(
     value: Float,
@@ -271,6 +251,9 @@ fun VerticalSlider(
     }
 }
 
+/**
+ * Display QR Codes by passing a bitmap
+ */
 @Composable
 fun QRCodeComponent(modifier: Modifier = Modifier, bitmap: Bitmap) {
     Image(
@@ -280,6 +263,9 @@ fun QRCodeComponent(modifier: Modifier = Modifier, bitmap: Bitmap) {
     )
 }
 
+/**
+ * Composable used for displaying avatars inside a colored circle around it
+ */
 @Composable
 fun AvatarIcon(modifier: Modifier = Modifier, imgModifier: Modifier = Modifier, resourceId: Int) {
     Card(
@@ -294,4 +280,36 @@ fun AvatarIcon(modifier: Modifier = Modifier, imgModifier: Modifier = Modifier, 
             modifier = imgModifier
         )
     }
+}
+
+/**
+ * A way to get custom width diving line / Underline for text
+ */
+@Composable
+fun Underline(width: Dp) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(1.dp)
+            .background(color = Raisin)
+    )
+}
+
+/**
+ * Used for all validation errors, has red colored text with set size
+ */
+@Composable
+fun ValidationErrorRow(
+    modifier: Modifier = Modifier,
+    text: String,
+    fontWeight: FontWeight = FontWeight.Normal,
+    fontSize: TextUnit = 12.sp
+) {
+    Text(
+        text = text,
+        color = Color.Red,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        modifier = modifier
+    )
 }

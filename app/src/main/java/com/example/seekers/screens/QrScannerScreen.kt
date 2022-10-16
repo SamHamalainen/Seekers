@@ -20,6 +20,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+/**
+ * This screen is used for the user to scan QR code of another players device.
+ * uses https://github.com/yuriy-budiyev/code-scanner library for the scanner.
+ */
 @Composable
 fun QrScannerScreen(
     navController: NavHostController,
@@ -34,10 +38,14 @@ fun QrScannerScreen(
     val lobby by vm.lobby.observeAsState()
     val playersInLobby by vm.playersInLobby.observeAsState()
 
+    // When launched check all permissions
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
     }
 
+    // When scanner returns gameId create player of users choices on AvatarPickerScreen
+    // then check if lobby is currently full. If lobby is full notify user and navigate back to StartGameScreen
+    // else join lobby and add player to players collection of the game.
     LaunchedEffect(gameId) {
         gameId?.let {
             val player = Player(
@@ -59,7 +67,7 @@ fun QrScannerScreen(
                     Toast.makeText(
                         context,
                         "The lobby is currently full",
-                        Toast.LENGTH_SHORT
+                        Toast.LENGTH_LONG
                     ).show()
                     navController.navigate(NavRoutes.StartGame.route)
                 } else {
@@ -76,7 +84,6 @@ fun QrScannerScreen(
 
         }
     }
-
     if (cameraIsAllowed) {
         QRScanner(context = context, onScanned = { gameId = it })
     } else {
