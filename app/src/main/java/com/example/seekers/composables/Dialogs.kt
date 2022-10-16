@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.News
-import com.example.seekers.Player
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.News
+import com.example.seekers.utils.Player
 import com.example.seekers.R
 import com.example.seekers.general.*
 import com.example.seekers.screens.DefineAreaButton

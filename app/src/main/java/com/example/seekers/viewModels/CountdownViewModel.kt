@@ -6,10 +6,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.seekers.CountdownService
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.GameService
-import com.example.seekers.Lobby
+import com.example.seekers.services.CountdownService
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.services.GameService
+import com.example.seekers.utils.Lobby
 
 class CountdownViewModel : ViewModel() {
     companion object {

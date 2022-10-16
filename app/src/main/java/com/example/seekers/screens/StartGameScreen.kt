@@ -20,7 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.seekers.PermissionsViewModel
+import com.example.seekers.utils.PermissionsViewModel
 import com.example.seekers.R
 import com.example.seekers.composables.LogOutDialog
 import com.example.seekers.composables.TutorialDialog

@@ -14,7 +14,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.navigation.NavHostController
 import com.example.seekers.*
+import com.example.seekers.composables.Power
 import com.example.seekers.general.NavRoutes
+import com.example.seekers.services.GameService
+import com.example.seekers.utils.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
@@ -60,99 +63,8 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
     val movingPlayers = Transformations.map(playersWithoutSelf) { players ->
         players.filter { it.inGameStatus == InGameStatus.MOVING.ordinal }
     }
-    val eliminatedPlayers = Transformations.map(playersWithoutSelf) { players ->
-        players.filter { it.inGameStatus == InGameStatus.ELIMINATED.ordinal }
-    }
     val countdown = MutableLiveData<Int>()
     var countdownReceiver: BroadcastReceiver? = null
-
-    fun addMockPlayers(gameId: String) {
-        val mockPlayers = listOf(
-            Player(
-                nickname = "player 1",
-                avatarId = 1,
-                inGameStatus = InGameStatus.HIDING.ordinal,
-                location = GeoPoint(60.22338389989929, 24.756749169655805),
-                playerId = "player 1",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-            Player(
-                nickname = "player 2",
-                avatarId = 5,
-                inGameStatus = InGameStatus.MOVING.ordinal,
-                location = GeoPoint(60.22374887627318, 24.759200708558442),
-                playerId = "player 2",
-                distanceStatus = PlayerDistance.WITHIN100.ordinal
-            ),
-            Player(
-                nickname = "player 3",
-                avatarId = 1,
-                inGameStatus = InGameStatus.HIDING.ordinal,
-                location = GeoPoint(60.223032239987354, 24.758830563735074),
-                playerId = "player 3",
-                distanceStatus = PlayerDistance.WITHIN10.ordinal
-            ),
-            Player(
-                nickname = "player 4",
-                avatarId = 1,
-                inGameStatus = InGameStatus.MOVING.ordinal,
-                location = GeoPoint(60.224550744400226, 24.756561415035257),
-                playerId = "player 4",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-            Player(
-                nickname = "player 5",
-                avatarId = 1,
-                inGameStatus = InGameStatus.ELIMINATED.ordinal,
-                location = GeoPoint(60.223405212500005, 24.75958158221728),
-                playerId = "player 5",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-            Player(
-                nickname = "player 6",
-                avatarId = 1,
-                inGameStatus = InGameStatus.HIDING.ordinal,
-                location = GeoPoint(60.223841983003645, 24.759626485065098),
-                playerId = "player 6",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-            Player(
-                nickname = "player 7",
-                avatarId = 5,
-                inGameStatus = InGameStatus.MOVING.ordinal,
-                location = GeoPoint(60.22357557804847, 24.756681419911455),
-                playerId = "player 7",
-                distanceStatus = PlayerDistance.WITHIN100.ordinal
-            ),
-            Player(
-                nickname = "player 8",
-                avatarId = 1,
-                inGameStatus = InGameStatus.HIDING.ordinal,
-                location = GeoPoint(60.22314399742664, 24.757781125478843),
-                playerId = "player 8",
-                distanceStatus = PlayerDistance.WITHIN10.ordinal
-            ),
-            Player(
-                nickname = "player 9",
-                avatarId = 1,
-                inGameStatus = InGameStatus.MOVING.ordinal,
-                location = GeoPoint(60.22311735646131, 24.759814239674167),
-                playerId = "player 9",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-            Player(
-                nickname = "player 10",
-                avatarId = 1,
-                inGameStatus = InGameStatus.ELIMINATED.ordinal,
-                location = GeoPoint(60.223405212500005, 24.75958158221728),
-                playerId = "player 10",
-                distanceStatus = PlayerDistance.WITHIN50.ordinal
-            ),
-        )
-        mockPlayers.forEach {
-            firestore.addPlayer(it, gameId)
-        }
-    }
 
     fun getPlayers(gameId: String) {
         firestore.getPlayers(gameId = gameId)
@@ -182,21 +94,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
         showJammer.value = newVal
     }
 
-//    fun getTime(gameId: String) {
-//        val now = Timestamp.now().toDate().time.div(1000)
-//        firestore.getLobby(gameId = gameId).get()
-//            .addOnSuccessListener {
-//                val lobby = it.toObject(Lobby::class.java)
-//                lobby?.let {
-//                    val startTime = lobby.startTime.toDate().time / 1000
-//                    val countdown = lobby.countdown
-//                    val timeLimit = lobby.timeLimit * 60
-//                    val gameEndTime = (startTime + countdown + timeLimit)
-//                    timeRemaining.postValue(gameEndTime.minus(now).toInt() + 1)
-//                }
-//            }
-//    }
-
     fun updateCountdown(newVal: Int) {
         countdown.value = newVal
     }
@@ -214,10 +111,6 @@ class HeatMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateUser(changeMap: Map<String, Any>, uid: String) =
         firestore.updateUser(changeMap = changeMap, userId = uid)
-
-    fun updatePlayer(changeMap: Map<String, Any>, gameId: String, uid: String) {
-        firestore.updatePlayer(changeMap, uid, gameId)
-    }
 
     fun setPlayerInGameStatus(status: Int, gameId: String, playerId: String) {
         firestore.updatePlayerInGameStatus(

@@ -26,6 +26,8 @@ import androidx.navigation.navArgument
 import com.example.seekers.general.NavRoutes
 import com.example.seekers.screens.*
 import com.example.seekers.ui.theme.SeekersTheme
+import com.example.seekers.utils.PermissionsDialog
+import com.example.seekers.utils.PermissionsViewModel
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient

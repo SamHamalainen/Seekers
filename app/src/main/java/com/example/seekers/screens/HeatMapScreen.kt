@@ -37,6 +37,7 @@ import com.example.seekers.composables.*
 import com.example.seekers.general.*
 import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.Raisin
+import com.example.seekers.utils.*
 import com.example.seekers.viewModels.HeatMapViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -74,9 +75,7 @@ fun HeatMapScreen(
     val radius by vm.radius.observeAsState()
     var initialPosSet by remember { mutableStateOf(false) }
     val center by vm.center.observeAsState()
-    val heatPositions by vm.heatPositions.observeAsState(listOf())
     val cameraPositionState = rememberCameraPositionState()
-    var minZoom by remember { mutableStateOf(17F) }
     var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
 
     // dialogs
@@ -102,6 +101,7 @@ fun HeatMapScreen(
     // Other
     val scope = rememberCoroutineScope()
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
+    val snackbarHostState = remember { SnackbarHostState() }
     var lobbyEndCountdown by remember { mutableStateOf(60) }
     val isSeeker by vm.isSeeker.observeAsState()
     val playerStatus by vm.playerStatus.observeAsState()
@@ -116,46 +116,17 @@ fun HeatMapScreen(
                 showSendSelfie = true
             }
         }
-    val tileProvider by remember {
-        derivedStateOf {
-            var provider: HeatmapTileProvider? = null
-            if (heatPositions.isNotEmpty()) {
-                provider = HeatmapTileProvider.Builder()
-                    .data(heatPositions)
-                    .build()
-                provider.setRadius(200)
-            }
-            provider
-        }
-    }
 
     var properties: MapProperties? by remember { mutableStateOf(null) }
-    val uiSettings by remember {
-        mutableStateOf(
-            MapUiSettings(
-                compassEnabled = true,
-                indoorLevelPickerEnabled = true,
-                mapToolbarEnabled = false,
-                myLocationButtonEnabled = false,
-                rotationGesturesEnabled = mapControl,
-                scrollGesturesEnabled = mapControl,
-                scrollGesturesEnabledDuringRotateOrZoom = mapControl,
-                tiltGesturesEnabled = mapControl,
-                zoomControlsEnabled = false,
-                zoomGesturesEnabled = mapControl
-            )
-        )
-    }
+
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
         vm.receiveCountdown(context)
         launch(Dispatchers.IO) {
             vm.getPlayers(gameId)
             vm.getLobby(gameId)
-//            vm.getTime(gameId)
             vm.getNews(gameId)
         }
-//        vm.addMockPlayers(gameId)
     }
 
     LaunchedEffect(currentSeekers) {
@@ -193,7 +164,6 @@ fun HeatMapScreen(
     }
 
     LaunchedEffect(playerStatus) {
-        println("playerStatus $playerStatus")
         playerStatus?.let {
             if (isSeeker == null) {
                 val thisPlayerIsSeeker = (it == InGameStatus.SEEKER.ordinal)
@@ -218,7 +188,12 @@ fun HeatMapScreen(
                     )
                     vm.updateIsSeeker(true)
                     vm.startService(context = context, gameId = gameId, isSeeker = true)
-                    Toast.makeText(context, "You are now a seeker!", Toast.LENGTH_SHORT).show()
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            "You are now a seeker! Let's find the other players!",
+                            actionLabel = "Dismiss"
+                        )
+                    }
                 }
                 InGameStatus.JAMMED.ordinal -> {
                     vm.updateShowJammer(true)
@@ -230,427 +205,212 @@ fun HeatMapScreen(
         }
     }
 
-    if (!initialPosSet) {
-        val density = LocalDensity.current
-        val width =
-            with(density) {
-                LocalConfiguration.current.screenWidthDp.dp.toPx()
-            }
-                .times(0.5).toInt()
-        LaunchedEffect(center) {
-            lobby?.let {
-                minZoom = getBoundsZoomLevel(
-                    getBounds(
-                        LatLng(
-                            it.center.latitude,
-                            it.center.longitude
-                        ), it.radius
-                    ),
-                    Size(width, width)
-                ).toFloat()
-                properties = MapProperties(
-                    mapType = MapType.SATELLITE,
-                    isMyLocationEnabled = true,
-                    maxZoomPreference = 17.5F,
-                    minZoomPreference = minZoom,
-                    latLngBoundsForCameraTarget =
-                    getBounds(
-                        LatLng(
-                            it.center.latitude,
-                            it.center.longitude
-                        ), it.radius
+//    if (!initialPosSet) {
+//        val density = LocalDensity.current
+//        val width = with(density) {
+//                LocalConfiguration.current.screenWidthDp.dp.toPx()
+//            }.times(0.5).toInt()
+//
+//        LaunchedEffect(center) {
+//            lobby?.let {
+//                val center = LatLng(
+//                    it.center.latitude,
+//                    it.center.longitude
+//                )
+//                val radius = it.radius
+//
+//                val mapBounds = getBounds(center, radius)
+//
+//                val minZoom = getBoundsZoomLevel(
+//                    mapBounds,
+//                    Size(width, width)
+//                ).toFloat()
+//
+//                properties = MapProperties(
+//                    mapType = MapType.SATELLITE,
+//                    isMyLocationEnabled = true,
+//                    maxZoomPreference = 17.5F,
+//                    minZoomPreference = minZoom,
+//                    latLngBoundsForCameraTarget = mapBounds
+//                )
+//                cameraPositionState.position = CameraPosition.fromLatLngZoom(center, minZoom)
+//
+//                circleCoords = getCircleCoords(center, radius)
+//
+//                initialPosSet = true
+//            }
+//        }
+//    }
+
+    BottomDrawerView(
+        vm = vm,
+        drawerState = drawerState,
+        isSeeker = isSeeker == true,
+        showQRScanner = { showQRScanner = true },
+        showQR = { showQR = true },
+        showRadarDialog = { showRadarDialog = true },
+        showLeaveGame = { showLeaveGameDialog = true },
+        showPlayerList = { showPlayerList = true }
+    ) {
+        Scaffold(
+            floatingActionButtonPosition = FabPosition.Center,
+            isFloatingActionButtonDocked = true,
+            floatingActionButton = {
+                if (!lobbyIsOver) {
+                    BottomDrawerFAB {
+                        scope.launch { drawerState.open() }
+                    }
+                } else {
+                    EndTimerSkip(lobbyEndCountdown = lobbyEndCountdown) {
+                        vm.endLobby(context)
+                        navController.navigate(NavRoutes.EndGame.route + "/$gameId")
+                    }
+                }
+            },
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (locationAllowed) {
+                    HeatMap(
+                        state = cameraPositionState,
+//                            center = center,
+//                            radius = radius,
+//                            properties = props,
+//                            movingPlayers = movingPlayers,
+//                            seekers = currentSeekers,
+//                            canSeeSeeker = canSeeSeeker,
+//                            circleCoords = circleCoords,
+                        vm = vm
                     )
-                )
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(center!!, minZoom)
-                initialPosSet = true
-                launch(Dispatchers.Default) {
-                    circleCoords = getCircleCoords(
-                        LatLng(
-                            it.center.latitude,
-                            it.center.longitude
-                        ), it.radius
+
+                    GameTopBar(modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(12.dp)
+                        .height(44.dp)
+                        .fillMaxWidth(), showNews = { showNews = true },
+                        vm = vm
+                    )
+
+                    if (showRadarDialog) {
+                        RadarDialog(
+                            gameId = gameId,
+                            onDismiss = { showRadarDialog = false }
+                        )
+                    }
+
+                    if (showQR) {
+                        ShowMyQRDialog(onDismiss = { showQR = false })
+                    }
+
+                    if (showJammer) Jammer()
+
+                    if (showQRScanner && cameraIsAllowed) {
+                        QRScannerDialog(onDismiss = { showQRScanner = false }) { id ->
+                            vm.setPlayerFound(gameId, id)
+                            players?.let {
+                                val found = it.find { player -> player.playerId == id }
+                                playerFound = found
+                            }
+                            showQRScanner = false
+                            showPlayerFound = true
+                        }
+                    }
+
+                    if (showPlayerFound) {
+                        PlayerFoundDialog(playerFound = playerFound, onCancel = {
+                            val nickname = playerFound?.nickname
+                            vm.addFoundNews(
+                                gameId,
+                                nickname.toString(),
+                                playerFound?.playerId.toString()
+                            )
+                            playerFound = null
+                            showPlayerFound = false
+                        }) {
+                            selfieLauncher.launch(null)
+                            showPlayerFound = false
+                        }
+                    }
+
+                    if (showLeaveGameDialog) {
+                        LeaveGameDialog(
+                            onDismissRequest = { showLeaveGameDialog = false },
+                            onConfirm = {
+                                vm.leaveGame(gameId, context, navController)
+                            })
+                    }
+
+                    selfie?.let {
+                        if (showSendSelfie) {
+                            SendSelfieDialog(
+                                selfie = it,
+                                onDismiss = {
+                                    playerFound = null
+                                    selfie = null
+                                    showSendSelfie = false
+                                },
+                                sendPic = {
+                                    vm.sendSelfie(
+                                        playerFound!!.playerId,
+                                        gameId,
+                                        it,
+                                        playerFound!!.nickname
+                                    )
+                                    playerFound = null
+                                    selfie = null
+                                    showSendSelfie = false
+                                },
+                                takeNew = {
+                                    selfieLauncher.launch(null)
+                                }
+                            )
+                        }
+                    }
+
+                    if (showNews && news != null) {
+                        NewsDialog(newsList = news!!, gameId = gameId) {
+                            showNews = false
+                        }
+                    }
+
+                    if (showPlayerList && players != null) {
+                        PlayerListDialog(
+                            onDismiss = { showPlayerList = false },
+                            players = players!!
+                        )
+                    }
+                    if (showPowers) {
+                        PowersDialog(
+                            onDismiss = { vm.updateShowPowersDialog(false) },
+                            vm = vm,
+                            gameId
+                        )
+                    }
+                } else {
+                    Text(text = "Location permission needed")
+                }
+                if (activePower != null && powerCountdown != null) {
+                    PowerActiveIndicator(
+                        power = activePower!!,
+                        countdown = powerCountdown!!,
+                        modifier = Modifier
+                            .align(
+                                Alignment.TopStart
+                            )
+                            .padding(vertical = 64.dp)
+                            .padding(horizontal = 12.dp)
                     )
                 }
-
             }
         }
     }
 
-    BottomDrawer(
-        gesturesEnabled = drawerState.isOpen,
-        drawerState = drawerState,
-        drawerContent = {
-            Surface(
-                shape = RoundedCornerShape(28.dp, 28.dp, 0.dp, 0.dp),
-                color = Emerald,
-                border = BorderStroke(1.dp, Raisin),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = Emerald)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = { scope.launch { drawerState.close() } },
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Raisin
-                                )
-                            }
-                        })
-                    if (isSeeker == true) {
-                        IconButton(
-                            onClick = {
-                                scope.launch { drawerState.close() }
-                                showRadarDialog = true
-                            },
-                            content = {
-                                Column(
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        Icons.Default.Radar,
-                                        contentDescription = "Radar",
-                                        tint = Raisin
-                                    )
-                                }
-                            },
-                        )
-                    } else {
-                        IconButton(
-                            onClick = {
-                                scope.launch { drawerState.close() }
-                                vm.updateShowPowersDialog(true)
-                            },
-                            content = {
-                                Column(
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.size(24.dp),
-                                        painter = painterResource(id = R.drawable.magic_wand),
-                                        contentDescription = "Radar",
-                                        tint = Raisin
-                                    )
-                                }
-                            },
-                            enabled = powerCountdown == 0
-                        )
-
-                    }
-
-                    IconButton(
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            if (isSeeker == true) {
-                                if (!showQRScanner) {
-                                    showQRScanner = true
-                                }
-                            } else {
-                                if (!showQR) {
-                                    showQR = true
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(56.dp),
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                if (isSeeker == true)
-                                    Icon(
-                                        Icons.Default.QrCodeScanner,
-                                        contentDescription = "",
-                                        tint = Raisin,
-                                        modifier = Modifier.size(44.dp)
-                                    )
-                                else
-                                    Icon(
-                                        Icons.Default.QrCode,
-                                        contentDescription = "",
-                                        tint = Raisin,
-                                        modifier = Modifier.size(44.dp)
-                                    )
-                            }
-                        })
-                    IconButton(
-                        onClick = {
-                            if (!showPlayerList) {
-                                showPlayerList = true
-                            }
-                        },
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(Icons.Default.List, contentDescription = "", tint = Raisin)
-                                // Text(text = "Players", color = Color.White)
-                            }
-                        })
-                    IconButton(
-                        onClick = {
-                            showLeaveGameDialog = true
-                        },
-                        content = {
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    Icons.Default.ExitToApp,
-                                    contentDescription = "",
-                                    tint = Color.Red
-                                )
-
-                            }
-                        })
-                }
-            }
-
-        },
-        drawerBackgroundColor = Color.Transparent,
-        drawerElevation = 0.dp,
-        content = {
-            Scaffold(
-                floatingActionButtonPosition = FabPosition.Center,
-                isFloatingActionButtonDocked = true,
-                floatingActionButton = {
-                    if (!lobbyIsOver) {
-                        FloatingActionButton(
-                            elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                            modifier = Modifier.border(
-                                BorderStroke(1.dp, Raisin),
-                                shape = CircleShape
-                            ),
-                            shape = CircleShape,
-                            backgroundColor = Emerald,
-                            contentColor = Raisin,
-                            onClick = {
-                                scope.launch { drawerState.open() }
-                            }
-                        ) {
-                            Icon(Icons.Filled.Dashboard, "", modifier = Modifier.size(38.dp))
-                        }
-                    } else {
-                        Card(
-                            backgroundColor = Color.White,
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .clickable {
-                                    vm.endLobby(context)
-                                    navController.navigate(NavRoutes.EndGame.route + "/$gameId")
-                                }
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = "The game will soon end")
-                                Text(text = "Press to skip")
-                                Text(text = secondsToText(lobbyEndCountdown))
-                            }
-                        }
-                    }
-                },
-            ) {
-                properties?.let { props ->
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        if (locationAllowed) {
-                            HeatMap(
-                                state = cameraPositionState,
-                                center = center,
-                                radius = radius,
-                                properties = props,
-                                uiSettings = uiSettings,
-                                movingPlayers = movingPlayers,
-                                seekers = currentSeekers,
-                                canSeeSeeker = canSeeSeeker,
-                                tileProvider = tileProvider,
-                                circleCoords = circleCoords
-                            )
-                            Card(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(12.dp)
-                                    .height(44.dp)
-                                    .fillMaxWidth(),
-                                backgroundColor = Emerald,
-                                border = BorderStroke(1.dp, Raisin),
-                                shape = RoundedCornerShape(5.dp)
-                            ) {
-                                Box(
-                                    Modifier.padding(8.dp),
-                                ) {
-                                    players?.let {
-                                        val total =
-                                            it.count { player ->
-                                                player.inGameStatus != InGameStatus.LEFT.ordinal
-                                            }
-                                        val hidingAmount =
-                                            it.count { player ->
-                                                player.inGameStatus == InGameStatus.HIDING.ordinal
-                                                        || player.inGameStatus == InGameStatus.MOVING.ordinal
-                                                        || player.inGameStatus == InGameStatus.INVISIBLE.ordinal
-                                                        || player.inGameStatus == InGameStatus.DECOYED.ordinal
-                                            }
-                                        Row(
-                                            modifier = Modifier.align(Alignment.CenterStart),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                Icons.Default.PeopleAlt,
-                                                contentDescription = "",
-                                                tint = Raisin
-                                            )
-                                            Spacer(Modifier.width(2.dp))
-                                            Text(
-                                                text = "$hidingAmount left",
-                                                color = Raisin,
-                                                fontSize = 16.sp
-                                            )
-                                        }
-                                    }
-
-                                    Box(modifier = Modifier.align(Alignment.Center)) {
-                                        GameTimer(vm = vm)
-                                    }
-
-                                    Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                                        NewsButton(onClick = {
-                                            showNews = true
-                                            vm.hasNewNews.value = false
-                                        }, hasNew = hasNewNews)
-                                    }
-                                }
-                            }
-
-                            if (showRadarDialog) {
-                                RadarDialog(
-                                    gameId = gameId,
-                                    onDismiss = { showRadarDialog = false }
-                                )
-                            }
-                            if (showQR) {
-                                ShowMyQRDialog(onDismiss = { showQR = false })
-                            }
-                            if (showJammer) Jammer()
-
-                            if (showQRScanner && cameraIsAllowed) {
-                                QRScannerDialog(onDismiss = { showQRScanner = false }) { id ->
-                                    vm.setPlayerFound(gameId, id)
-                                    players?.let {
-                                        val found = it.find { player -> player.playerId == id }
-                                        playerFound = found
-                                    }
-                                    showQRScanner = false
-                                    showPlayerFound = true
-                                }
-                            }
-
-                            if (showPlayerFound) {
-                                PlayerFoundDialog(playerFound = playerFound, onCancel = {
-                                    val nickname = playerFound?.nickname
-                                    vm.addFoundNews(
-                                        gameId,
-                                        nickname.toString(),
-                                        playerFound?.playerId.toString()
-                                    )
-                                    playerFound = null
-                                    showPlayerFound = false
-                                }) {
-                                    selfieLauncher.launch(null)
-                                    showPlayerFound = false
-                                }
-                            }
-
-                            if (showLeaveGameDialog) {
-                                LeaveGameDialog(
-                                    onDismissRequest = { showLeaveGameDialog = false },
-                                    onConfirm = {
-                                        vm.leaveGame(gameId, context, navController)
-                                    })
-                            }
-
-                            selfie?.let {
-                                if (showSendSelfie) {
-                                    SendSelfieDialog(
-                                        selfie = it,
-                                        onDismiss = {
-                                            playerFound = null
-                                            selfie = null
-                                            showSendSelfie = false
-                                        },
-                                        sendPic = {
-                                            vm.sendSelfie(
-                                                playerFound!!.playerId,
-                                                gameId,
-                                                it,
-                                                playerFound!!.nickname
-                                            )
-                                            playerFound = null
-                                            selfie = null
-                                            showSendSelfie = false
-                                        }) {
-                                        selfieLauncher.launch(null)
-                                    }
-                                }
-                            }
-
-                            if (showNews && news != null) {
-                                NewsDialog(newsList = news!!, gameId = gameId) {
-                                    showNews = false
-                                }
-                            }
-
-                            if (showPlayerList && players != null) {
-                                PlayerListDialog(
-                                    onDismiss = { showPlayerList = false },
-                                    players = players!!
-                                )
-                            }
-
-                            if (showPowers) {
-                                PowersDialog(
-                                    onDismiss = { vm.updateShowPowersDialog(false) },
-                                    vm = vm,
-                                    gameId
-                                )
-                            }
-                            BackHandler(enabled = true) {
-                                if (drawerState.isOpen) {
-                                    scope.launch { drawerState.close() }
-                                } else {
-                                    showLeaveGameDialog = true
-                                }
-                            }
-                        } else {
-                            Text(text = "Location permission needed")
-                        }
-                        if (activePower != null && powerCountdown != null) {
-                            PowerActiveIndicator(
-                                power = activePower!!,
-                                countdown = powerCountdown!!,
-                                modifier = Modifier
-                                    .align(
-                                        Alignment.TopStart
-                                    )
-                                    .padding(vertical = 64.dp)
-                                    .padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                }
-            }
+    SnackbarHost(hostState = snackbarHostState)
+    BackHandler(enabled = true) {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            showLeaveGameDialog = true
         }
-    )
+    }
 }
 

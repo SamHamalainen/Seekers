@@ -8,10 +8,10 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.InGameStatus
-import com.example.seekers.Lobby
-import com.example.seekers.Player
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.InGameStatus
+import com.example.seekers.utils.Lobby
+import com.example.seekers.utils.Player
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ktx.toObject
 import java.math.RoundingMode

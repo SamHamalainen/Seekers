@@ -7,10 +7,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.InGameStatus
-import com.example.seekers.Player
-import com.example.seekers.PlayerDistance
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.InGameStatus
+import com.example.seekers.utils.Player
+import com.example.seekers.utils.PlayerDistance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

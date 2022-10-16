@@ -1,20 +1,15 @@
-package com.example.seekers
+package com.example.seekers.utils
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
+import com.example.seekers.R
 import com.example.seekers.ui.theme.Emerald
-import com.google.android.gms.location.Priority
-import java.util.*
 
 object Notifications {
     private val CHANNEL_ID = "FOREGROUND_SERVICE"
@@ -53,7 +48,9 @@ object Notifications {
             .setContentTitle(title)
             .setContentText(content)
             .setSmallIcon(R.drawable.seekers_notif)
-            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.chick_with_background))
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources,
+                R.drawable.chick_with_background
+            ))
             .setPriority(priority)
             .setCategory(category)
             .setContentIntent(pendingIntent)

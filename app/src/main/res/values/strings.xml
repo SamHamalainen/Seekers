@@ -6,6 +6,7 @@
     <string name="radius">Radius (meters)</string>
     <string name="create_lobby">Create lobby</string>
     <string name="title_activity_start_game_screen">Start game</string>
-    <string name="your_web_client_id">81789219445-71lf07863b5ccvuk2581bsup8ohnp4ju.apps.googleusercontent.com</string>
+<!--    <string name="your_web_client_id">81789219445-71lf07863b5ccvuk2581bsup8ohnp4ju.apps.googleusercontent.com</string>-->
+    <string name="your_web_client_id">323267010921-pr4qu709hcl3v5s6dd4h4gabdv9jvms1.apps.googleusercontent.com</string>
     <string name="countdown">Countdown (seconds)</string>
 </resources>

@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.utils
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -6,14 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Looper
 import android.util.Log
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.*
 
 object LocationHelper {

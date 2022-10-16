@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -13,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -23,14 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.seekers.*
 import com.example.seekers.R
 import com.example.seekers.composables.AreaSelectionMap
 import com.example.seekers.general.CustomButton
 import com.example.seekers.general.Input
 import com.example.seekers.general.NavRoutes
 import com.example.seekers.ui.theme.Raisin
-import com.example.seekers.ui.theme.SizzlingRed
+import com.example.seekers.utils.*
 import com.example.seekers.viewModels.LobbyCreationScreenViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.firebase.firestore.GeoPoint

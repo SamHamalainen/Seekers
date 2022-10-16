@@ -27,8 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.seekers.*
-import com.example.seekers.R
 import com.example.seekers.composables.DismissLobbyDialog
 import com.example.seekers.composables.EditRulesDialog
 import com.example.seekers.composables.LeaveGameDialog
@@ -39,6 +37,7 @@ import com.example.seekers.general.generateQRCode
 import com.example.seekers.general.getAvatarId
 import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.ui.theme.avatarBackground
+import com.example.seekers.utils.*
 import com.example.seekers.viewModels.LobbyCreationScreenViewModel
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.Dispatchers

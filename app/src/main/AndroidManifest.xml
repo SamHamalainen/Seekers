@@ -26,8 +26,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Seekers"
         tools:targetApi="31">
-        <service android:name=".GameService" />
-        <service android:name=".CountdownService" />
+        <service android:name=".services.GameService" />
+        <service android:name=".services.CountdownService" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

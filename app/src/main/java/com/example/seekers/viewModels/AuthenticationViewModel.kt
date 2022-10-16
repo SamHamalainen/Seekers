@@ -5,8 +5,8 @@ import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.Lobby
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.Lobby
 import com.example.seekers.general.isEmailValid
 import com.example.seekers.general.isPasswordValid
 import com.google.firebase.auth.FirebaseUser

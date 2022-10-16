@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.seekers.Player
+import com.example.seekers.utils.Player
 import com.example.seekers.R
 import com.example.seekers.general.AvatarIcon
 import com.example.seekers.general.CustomButton

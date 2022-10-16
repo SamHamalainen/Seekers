@@ -3,8 +3,8 @@ package com.example.seekers.viewModels
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.seekers.FirebaseHelper
-import com.example.seekers.Lobby
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.Lobby
 
 class ScannerViewModel : ViewModel() {
     companion object {

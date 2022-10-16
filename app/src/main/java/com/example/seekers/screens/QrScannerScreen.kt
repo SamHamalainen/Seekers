@@ -12,9 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.seekers.*
 import com.example.seekers.general.NavRoutes
 import com.example.seekers.general.QRScanner
+import com.example.seekers.utils.*
 import com.example.seekers.viewModels.ScannerViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

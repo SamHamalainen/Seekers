@@ -15,7 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.seekers.LobbyStatus
+import com.example.seekers.utils.LobbyStatus
 import com.example.seekers.LoginForm
 import com.example.seekers.R
 import com.example.seekers.general.NavRoutes
@@ -28,24 +28,12 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavController) {
-    val token = stringResource(R.string.your_web_client_id)
     val loggedInUser: FirebaseUser? by vm.user.observeAsState(null)
     val gameStatus by vm.gameStatus.observeAsState()
     val gameId by vm.currentGameId.observeAsState()
     val userIsInUsers by vm.userIsInUsers.observeAsState()
     var loading by remember { mutableStateOf(true) }
     val height = LocalConfiguration.current.screenHeightDp
-
-    val launcher = googleRememberFirebaseAuthLauncher(
-        onAuthComplete = {
-            vm.setUser(it.user)
-            Log.d("authenticated", "MainScreen: ${vm.fireBaseAuth.currentUser}")
-        },
-        onAuthError = {
-            vm.setUser(null)
-            Log.d("authenticated", "MainScreen: ${it.message}")
-        }
-    )
 
     LaunchedEffect(Unit) {
         vm.setUser(vm.fireBaseAuth.currentUser)
@@ -113,10 +101,8 @@ fun MainScreen(vm: AuthenticationViewModel = viewModel(), navController: NavCont
     ) {
         if (loggedInUser == null && !loading) {
             LoginForm(
-                model = vm,
+                vm = vm,
                 navController = navController,
-                token = token,
-                launcher = launcher
             )
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

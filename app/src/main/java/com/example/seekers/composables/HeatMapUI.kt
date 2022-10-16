@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.composables
 
 import android.content.Context
 import android.widget.Toast
@@ -23,36 +23,90 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.seekers.R
 import com.example.seekers.general.AvatarIcon
+import com.example.seekers.general.NavRoutes
 import com.example.seekers.general.avatarList
 import com.example.seekers.general.secondsToText
+import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.Raisin
 import com.example.seekers.ui.theme.SizzlingRed
+import com.example.seekers.utils.InGameStatus
+import com.example.seekers.utils.Player
 import com.example.seekers.viewModels.HeatMapViewModel
+import com.google.maps.android.compose.MapUiSettings
 import java.util.*
 
+val uiSettings = MapUiSettings(
+    compassEnabled = true,
+    indoorLevelPickerEnabled = true,
+    mapToolbarEnabled = false,
+    myLocationButtonEnabled = false,
+    rotationGesturesEnabled = true,
+    scrollGesturesEnabled = true,
+    scrollGesturesEnabledDuringRotateOrZoom = true,
+    tiltGesturesEnabled = true,
+    zoomControlsEnabled = false,
+    zoomGesturesEnabled = true
+)
+
 @Composable
-fun PlayerListButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(shape = CircleShape, elevation = 4.dp, modifier = modifier.clickable { onClick() }) {
-        Icon(
-            imageVector = Icons.Filled.List,
-            contentDescription = "playerList",
-            modifier = Modifier.padding(8.dp)
-        )
+fun GameTopBar(modifier: Modifier = Modifier, showNews: (Boolean) -> Unit, vm: HeatMapViewModel) {
+    val players by vm.players.observeAsState(listOf())
+    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    val hidingAmount by derivedStateOf {
+        players.count { player ->
+            player.inGameStatus == InGameStatus.HIDING.ordinal
+                    || player.inGameStatus == InGameStatus.MOVING.ordinal
+                    || player.inGameStatus == InGameStatus.INVISIBLE.ordinal
+                    || player.inGameStatus == InGameStatus.DECOYED.ordinal
+        }
+    }
+    Card(
+        modifier = modifier,
+        backgroundColor = Emerald,
+        border = BorderStroke(1.dp, Raisin),
+        shape = RoundedCornerShape(5.dp)
+    ) {
+        Box(
+            Modifier.padding(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterStart),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.PeopleAlt,
+                    contentDescription = "",
+                    tint = Raisin
+                )
+                Spacer(Modifier.width(2.dp))
+                Text(
+                    text = "$hidingAmount left",
+                    color = Raisin,
+                    fontSize = 16.sp
+                )
+            }
+            Box(modifier = Modifier.align(Alignment.Center)) {
+                GameTimer(vm = vm)
+            }
+
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                NewsButton(onClick = {
+                    showNews(true)
+                    vm.hasNewNews.value = false
+                }, hasNew = hasNewNews)
+            }
+        }
     }
 }
 
@@ -352,6 +406,27 @@ fun GameTimer(vm: HeatMapViewModel) {
                 else
                     Text(text = timeText, color = Raisin, fontSize = 20.sp)
             }
+        }
+    }
+}
+
+@Composable
+fun EndTimerSkip(lobbyEndCountdown: Int, onClick: () -> Unit) {
+    Card(
+        backgroundColor = Color.White,
+        modifier = Modifier
+            .padding(10.dp)
+            .clickable {
+                onClick()
+            }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(text = "The game will soon end")
+            Text(text = "Press to skip")
+            Text(text = secondsToText(lobbyEndCountdown))
         }
     }
 }

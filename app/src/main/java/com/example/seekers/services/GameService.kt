@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.services
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -12,7 +12,9 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.example.seekers.*
 import com.example.seekers.general.secondsToText
+import com.example.seekers.utils.*
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -104,24 +106,24 @@ class GameService : Service() {
 
     fun updatePlayerLoc(gameId: String, curLoc: Location) {
         Log.d(TAG, "updateLoc: sent location")
-        firestore.updatePlayer(
+        FirebaseHelper.updatePlayer(
             mapOf(
                 Pair(
                     "location",
                     GeoPoint(curLoc.latitude, curLoc.longitude)
                 )
             ),
-            firestore.uid!!,
+            FirebaseHelper.uid!!,
             gameId
         )
         previousLoc = curLoc
     }
 
     fun setInGameStatus(status: Int, gameId: String) {
-        firestore.updatePlayerInGameStatus(
+        FirebaseHelper.updatePlayerInGameStatus(
             status,
             gameId,
-            firestore.uid!!
+            FirebaseHelper.uid!!
         )
     }
 
@@ -130,21 +132,21 @@ class GameService : Service() {
             previousLoc = curLoc
             Log.d(TAG, "updateLoc: $curLoc")
             Log.d(TAG, "updateLoc: $isSeeker")
-            firestore.updatePlayer(
+            FirebaseHelper.updatePlayer(
                 mapOf(
                     Pair(
                         "location",
                         GeoPoint(curLoc.latitude, curLoc.longitude)
                     )
                 ),
-                firestore.uid!!,
+                FirebaseHelper.uid!!,
                 gameId
             )
             return
         }
         val distanceToPrev = prevLoc.distanceTo(curLoc)
 
-        firestore.getPlayer(gameId, firestore.uid!!).get()
+        FirebaseHelper.getPlayer(gameId, FirebaseHelper.uid!!).get()
             .addOnSuccessListener {
                 val player = it.toObject<Player>()
                 when (player?.inGameStatus) {
@@ -169,7 +171,7 @@ class GameService : Service() {
     }
 
     fun checkDistanceToSeekers(ownLocation: Location, gameId: String) {
-        firestore.getPlayers(gameId)
+        FirebaseHelper.getPlayers(gameId)
             .whereEqualTo("inGameStatus", InGameStatus.SEEKER.ordinal)
             .get()
             .addOnSuccessListener {
@@ -195,7 +197,7 @@ class GameService : Service() {
     }
 
     fun checkOutOfBounds(gameId: String, curLoc: Location) {
-        firestore.getLobby(gameId).get()
+        FirebaseHelper.getLobby(gameId).get()
             .addOnSuccessListener {
                 val lobby = it.toObject(Lobby::class.java)
                 lobby?.let { lob ->
@@ -350,7 +352,7 @@ class GameService : Service() {
 
     private fun getTime(gameId: String) {
         val now = Timestamp.now().toDate().time.div(1000)
-        firestore.getLobby(gameId = gameId).get()
+        FirebaseHelper.getLobby(gameId = gameId).get()
             .addOnSuccessListener {
                 val lobby = it.toObject(Lobby::class.java)
                 lobby?.let {
@@ -400,11 +402,11 @@ class GameService : Service() {
     fun timeUp() {
         sendEndGameNotification("Time is up and some players remained hidden! The seekers lose!")
         currentGameId?.let { id ->
-            firestore.getLobby(id).get().addOnSuccessListener {
+            FirebaseHelper.getLobby(id).get().addOnSuccessListener {
                 val status = it.toObject<Lobby>()?.status
                 if (status != LobbyStatus.FINISHED.ordinal) {
                     val changeMap = mapOf(Pair("status", LobbyStatus.FINISHED.ordinal))
-                    firestore.updateLobby(changeMap, gameId = id)
+                    FirebaseHelper.updateLobby(changeMap, gameId = id)
                 }
                 scope.launch {
                     delay(500)
@@ -421,22 +423,22 @@ class GameService : Service() {
             newsListener = listenForNews(gameId)
             lobbyListener = listenToLobby(gameId)
 
-            Notifications.createNotificationChannel(
-                context = applicationContext,
-                SEEKER_NOTIFICATION,
-                importanceLevel = NotificationManager.IMPORTANCE_HIGH
-            )
-            Notifications.createNotificationChannel(
-                context = applicationContext,
-                FOUND_NOTIFICATION,
-                importanceLevel = NotificationManager.IMPORTANCE_HIGH
-            )
-            Notifications.createNotificationChannel(
-                context = applicationContext,
-                END_NOTIFICATION,
-                importanceLevel = NotificationManager.IMPORTANCE_HIGH
-            )
-            Notifications.createNotificationChannel(context = applicationContext)
+        Notifications.createNotificationChannel(
+            context = applicationContext,
+            SEEKER_NOTIFICATION,
+            importanceLevel = NotificationManager.IMPORTANCE_HIGH
+        )
+        Notifications.createNotificationChannel(
+            context = applicationContext,
+            FOUND_NOTIFICATION,
+            importanceLevel = NotificationManager.IMPORTANCE_HIGH
+        )
+        Notifications.createNotificationChannel(
+            context = applicationContext,
+            END_NOTIFICATION,
+            importanceLevel = NotificationManager.IMPORTANCE_HIGH
+        )
+        Notifications.createNotificationChannel(context = applicationContext)
             val notification = buildMainNotification(null)
             startForeground(MAIN_NOTIFICATION_ID, notification)
             startTracking(gameId, isSeeker)

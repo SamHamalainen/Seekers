@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.seekers.FirebaseHelper
+import com.example.seekers.utils.FirebaseHelper
 import com.example.seekers.general.CustomButton
 import com.example.seekers.general.NavRoutes
 import com.example.seekers.viewModels.GameEndViewModel

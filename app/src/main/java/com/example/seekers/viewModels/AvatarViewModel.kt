@@ -2,7 +2,7 @@ package com.example.seekers.viewModels
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.seekers.FirebaseHelper
+import com.example.seekers.utils.FirebaseHelper
 import com.example.seekers.R
 
 class AvatarViewModel() : ViewModel() {

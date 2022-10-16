@@ -2,6 +2,7 @@ package com.example.seekers
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -34,12 +36,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 
 @Composable
 fun LoginForm(
-    model: AuthenticationViewModel = viewModel(),
+    vm: AuthenticationViewModel,
     navController: NavController,
-    token: String,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>
 ) {
-
     var invalidCredentials by remember { mutableStateOf(false) }
     // Email
     var email by remember { mutableStateOf(TextFieldValue("")) }
@@ -53,7 +52,6 @@ fun LoginForm(
     val width = LocalConfiguration.current.screenWidthDp * 0.8
     adjustContentWithKB(context, isPan = true)
     val height = LocalConfiguration.current.screenHeightDp
-
 
     Column(
         verticalArrangement = Arrangement.SpaceEvenly,
@@ -109,7 +107,9 @@ fun LoginForm(
             )
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
             ) {
                 CustomButton(
                     onClick = {
@@ -120,21 +120,20 @@ fun LoginForm(
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            model.fireBaseAuth.signInWithEmailAndPassword(
+                            vm.fireBaseAuth.signInWithEmailAndPassword(
                                 email.text,
                                 password.text
                             )
-                                .addOnCompleteListener() {
+                                .addOnCompleteListener {
                                     if (it.isSuccessful) {
-                                        model.setUser(model.fireBaseAuth.currentUser)
-                                        println("logged in as: ${model.fireBaseAuth.currentUser}")
+                                        vm.setUser(it.result.user)
+                                        println("logged in as: ${vm.fireBaseAuth.currentUser}")
                                         invalidCredentials = false
                                         navController.navigate(NavRoutes.StartGame.route)
                                     }
                                 }
                                 .addOnFailureListener {
                                     invalidCredentials = true
-//                                Log.e("login fail", "LoginForm: ", it)
                                 }
                         }
                     }, text = "Login"
@@ -142,8 +141,8 @@ fun LoginForm(
             }
         }
         Text(text = "Or", fontSize = 16.sp, color = Raisin)
-        GoogleButton(token = token, context = context, launcher = launcher)
-        Row() {
+        GoogleButton(context = context, vm = vm)
+        Row {
             Text(text = "Don't have an account?", fontSize = 12.sp, color = Raisin)
             Text(
                 text = " Create one now",
@@ -160,11 +159,21 @@ fun LoginForm(
 
 @Composable
 fun GoogleButton(
-    token: String,
     context: Context,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>
+    vm: AuthenticationViewModel
 ) {
+    val token = stringResource(id = R.string.your_web_client_id)
     val width = LocalConfiguration.current.screenWidthDp * 0.8
+    val googleLauncher = googleRememberFirebaseAuthLauncher(
+        onAuthComplete = {
+            vm.setUser(it.user)
+            Log.d("authenticated", "MainScreen: ${vm.fireBaseAuth.currentUser}")
+        },
+        onAuthError = {
+            vm.setUser(null)
+            Log.d("authenticated", "MainScreen: ${it.message}")
+        }
+    )
     Button(
         modifier = Modifier.width(width.dp),
         onClick = {
@@ -174,7 +183,7 @@ fun GoogleButton(
                     .requestEmail()
                     .build()
             val googleSignInClient = GoogleSignIn.getClient(context, gso)
-            launcher.launch(googleSignInClient.signInIntent)
+            googleLauncher.launch(googleSignInClient.signInIntent)
         },
         colors = ButtonDefaults.buttonColors(Color.White)
     ) {

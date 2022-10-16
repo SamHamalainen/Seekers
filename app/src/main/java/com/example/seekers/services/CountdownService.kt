@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.services
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -8,7 +8,9 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.*
 import androidx.core.app.NotificationManagerCompat
+import com.example.seekers.*
 import com.example.seekers.general.secondsToText
+import com.example.seekers.utils.*
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +37,12 @@ class CountdownService: Service() {
     var mediaPlayerHidingPhaseMusic: MediaPlayer? = null
     var mediaPlayerCountdown: MediaPlayer? = null
 
-    fun mediaPlayerHidingPhaseMusic(): MediaPlayer = MediaPlayer.create(applicationContext, R.raw.countdown_music)
-    fun mediaPlayerCountdown() : MediaPlayer = MediaPlayer.create(applicationContext, R.raw.counting_down)
+    fun mediaPlayerHidingPhaseMusic(): MediaPlayer = MediaPlayer.create(applicationContext,
+        R.raw.countdown_music
+    )
+    fun mediaPlayerCountdown() : MediaPlayer = MediaPlayer.create(applicationContext,
+        R.raw.counting_down
+    )
 
     override fun onBind(p0: Intent?): IBinder? {
         return null
@@ -55,7 +61,7 @@ class CountdownService: Service() {
     }
 
     fun getIsSeeker(gameId: String) {
-        firestore.getPlayer(gameId, firestore.uid!!).get()
+        FirebaseHelper.getPlayer(gameId, FirebaseHelper.uid!!).get()
             .addOnSuccessListener {
                 val player = it.toObject(Player::class.java)
                 val isSeeker = player?.inGameStatus == InGameStatus.SEEKER.ordinal
@@ -64,7 +70,7 @@ class CountdownService: Service() {
     }
 
     fun getInitialValue(gameId: String, isSeeker: Boolean) {
-        firestore.getLobby(gameId).get()
+        FirebaseHelper.getLobby(gameId).get()
             .addOnSuccessListener {
                 val lobby = it.toObject(Lobby::class.java)
                 lobby ?: return@addOnSuccessListener
@@ -89,7 +95,7 @@ class CountdownService: Service() {
                     updateMainNotification(0)
                     broadcastCountdown(0)
                     if (isSeeker) {
-                        firestore.updateLobby(
+                        FirebaseHelper.updateLobby(
                             mapOf(Pair("status", LobbyStatus.ACTIVE.ordinal)),
                             gameId
                         )
@@ -121,7 +127,7 @@ class CountdownService: Service() {
             override fun onFinish() {
                 vibrate(500)
                 if (isSeeker) {
-                    firestore.updateLobby(
+                    FirebaseHelper.updateLobby(
                         mapOf(Pair("status", LobbyStatus.ACTIVE.ordinal)),
                         gameId
                     )

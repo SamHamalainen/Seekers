@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.utils
 
 import android.graphics.Bitmap
 import android.util.Log

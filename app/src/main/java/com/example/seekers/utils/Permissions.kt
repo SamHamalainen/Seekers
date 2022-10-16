@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.utils
 
 import android.Manifest
 import android.content.Context
