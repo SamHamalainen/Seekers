@@ -138,7 +138,8 @@ fun HeatMapScreen(
                     scope.launch {
                         scaffoldState.snackbarHostState.showSnackbar(
                             "You are now a seeker! Let's find the other players!",
-                            actionLabel = "Dismiss"
+                            actionLabel = "Dismiss",
+                            duration = SnackbarDuration.Long
                         )
                     }
                 }
