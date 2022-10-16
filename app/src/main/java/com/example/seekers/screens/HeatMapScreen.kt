@@ -214,16 +214,7 @@ fun HeatMapScreen(
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 
-                GameTopBar(modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(12.dp)
-                    .height(44.dp)
-                    .fillMaxWidth(), showNews = { showNews = true },
-                    vm = vm
-                )
-
                 if (locationAllowed) {
-
                     HeatMap(
                         state = cameraPositionState,
                         vm = vm
@@ -327,6 +318,13 @@ fun HeatMapScreen(
                 } else {
                     Text(text = "Location permission needed")
                 }
+                GameTopBar(modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(12.dp)
+                    .height(44.dp)
+                    .fillMaxWidth(), showNews = { showNews = true },
+                    vm = vm
+                )
 
                 if (activePower != null && powerCountdown != null) {
                     PowerActiveIndicator(
