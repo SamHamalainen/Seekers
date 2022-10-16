@@ -45,6 +45,7 @@ fun HeatMapScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val scaffoldState = rememberScaffoldState()
 
     // players
     val currentSeekers by vm.currentSeekers.observeAsState(listOf())
@@ -135,7 +136,7 @@ fun HeatMapScreen(
                     vm.updateIsSeeker(true)
                     vm.startService(context = context, gameId = gameId, isSeeker = true)
                     scope.launch {
-                        snackbarHostState.showSnackbar(
+                        scaffoldState.snackbarHostState.showSnackbar(
                             "You are now a seeker! Let's find the other players!",
                             actionLabel = "Dismiss"
                         )
@@ -196,6 +197,7 @@ fun HeatMapScreen(
 
         // Game UI with map and other widgets
         Scaffold(
+            scaffoldState = scaffoldState,
             floatingActionButtonPosition = FabPosition.Center,
             isFloatingActionButtonDocked = true,
             // During game: FAB to open the bottom drawer menu
