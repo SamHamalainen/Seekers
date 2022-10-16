@@ -122,6 +122,10 @@ fun LobbyCreationScreen(
             ) {
                 // When game rules are over the minimum amounts create new lobby document with current user as player
                 // then navigate to the LobbyQRScreen
+                if (maxPlayers == null || timeLimit == null || countdown == null) {
+                    Toast.makeText(context, "Please fill in all the fields", Toast.LENGTH_SHORT).show()
+                    return@CustomButton
+                }
                 if (maxPlayers!! >= 2 && timeLimit!! >= 10 && radius != null && countdown!! >= 30) {
                     if (center == null) {
                         Toast.makeText(
