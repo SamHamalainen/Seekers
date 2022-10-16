@@ -14,16 +14,21 @@ import com.example.seekers.utils.PlayerDistance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class RadarViewModel() : ViewModel() {
+/**
+ * RadarViewModel: Contains all the logic behind the RadarScreen
+ */
+
+class RadarViewModel : ViewModel() {
     val firestore = FirebaseHelper
     private val _scanningStatus = MutableLiveData<Int>()
     val scanningStatus: LiveData<Int> = _scanningStatus
     val players = MutableLiveData(listOf<Pair<Player, Float>>())
 
-    fun filterPlayersList(list: List<Player>, initialSeeker: Player) {
+    // Creates a list of players with their distance to the current user, excluding the players
+    // that are further than 100m and the current player
+    private fun filterPlayersList(list: List<Player>, initialSeeker: Player) {
         viewModelScope.launch(Dispatchers.Default) {
             val seekersGeoPoint = initialSeeker.location
-            Log.d("initialSeeker", seekersGeoPoint.toString())
             val seekerConvertedToLocation = Location(LocationManager.GPS_PROVIDER)
             seekerConvertedToLocation.latitude = seekersGeoPoint.latitude
             seekerConvertedToLocation.longitude = seekersGeoPoint.longitude
@@ -52,17 +57,20 @@ class RadarViewModel() : ViewModel() {
 
             val playersFiltered =
                 playersWithDistance.filter {
-                    it.first.distanceStatus != PlayerDistance.NOT_IN_RADAR.ordinal && it.first.playerId != FirebaseHelper.uid!!
+                    it.first.distanceStatus != PlayerDistance.NOT_IN_RADAR.ordinal
+                            && it.first.playerId != FirebaseHelper.uid!!
                 }
             players.postValue(playersFiltered.sortedBy { it.second })
         }
     }
 
+    // Updates the status of the radar, mainly for the Lottie animation
     fun updateScanStatus(value: Int) {
         _scanningStatus.value = value
     }
 
-    suspend fun getPlayers(gameId: String): Boolean {
+    // Get a snapshot of all the players in the current game in firebase
+    fun getPlayers(gameId: String): Boolean {
         firestore.getPlayers(gameId)
             .get().addOnSuccessListener { list ->
                 val playerList = list.toObjects(Player::class.java)

@@ -1,6 +1,5 @@
 package com.example.seekers.screens
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +19,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+/**
+ * QrScannerScreen: Users can join a lobby by scanning its QR code
+ */
+
 @Composable
 fun QrScannerScreen(
     navController: NavHostController,
@@ -34,6 +37,7 @@ fun QrScannerScreen(
     val lobby by vm.lobby.observeAsState()
     val playersInLobby by vm.playersInLobby.observeAsState()
 
+    // check all permissions required
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
     }
@@ -55,6 +59,7 @@ fun QrScannerScreen(
             }
             delay(1000)
             if (hasLobby && hasPlayers) {
+                // if a lobby has already reached its maximum number of players, the app shows a toast
                 if (lobby?.maxPlayers == playersInLobby) {
                     Toast.makeText(
                         context,
@@ -63,7 +68,7 @@ fun QrScannerScreen(
                     ).show()
                     navController.navigate(NavRoutes.StartGame.route)
                 } else {
-                    Log.d("lobbyJoin", "lobby max: ${lobby?.maxPlayers}")
+                    // else they are added to the lobby and their currentGameId is updated to the current lobbies gameId
                     FirebaseHelper.addPlayer(player, it)
                     FirebaseHelper.updateUser(
                         FirebaseHelper.uid!!,
@@ -77,6 +82,7 @@ fun QrScannerScreen(
         }
     }
 
+    // Shows the QR code scanner if the camera permission has been activated
     if (cameraIsAllowed) {
         QRScanner(context = context, onScanned = { gameId = it })
     } else {

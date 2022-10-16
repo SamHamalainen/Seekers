@@ -6,6 +6,10 @@ import androidx.lifecycle.ViewModel
 import com.example.seekers.utils.FirebaseHelper
 import com.example.seekers.utils.Lobby
 
+/**
+ * ScannerViewModel: Contains all the logic behind the QrScannerScreen
+ */
+
 class ScannerViewModel : ViewModel() {
     companion object {
         const val TAG = "SCANNER_VIEW_MODEL"
@@ -15,7 +19,7 @@ class ScannerViewModel : ViewModel() {
     val lobby = MutableLiveData<Lobby>()
     val playersInLobby = MutableLiveData<Int>()
 
-    suspend fun getLobby(gameId: String): Boolean {
+    fun getLobby(gameId: String): Boolean {
         firestore.getLobby(gameId).addSnapshotListener { data, e ->
             data ?: kotlin.run {
                 Log.e(TAG, "getLobby: ", e)
@@ -26,7 +30,7 @@ class ScannerViewModel : ViewModel() {
         return true
     }
 
-    suspend fun getNumberOfPlayersInLobby(gameId: String): Boolean {
+    fun getNumberOfPlayersInLobby(gameId: String): Boolean {
         firestore.getPlayers(gameId).addSnapshotListener { data, e ->
             data ?: kotlin.run {
                 Log.e(TAG, "getLobby: ", e)

@@ -46,11 +46,11 @@ android {
         }
     }
 
-//    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-//        kotlinOptions {
-//            freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
-//        }
-//    }
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+        }
+    }
 }
 
 dependencies {
@@ -58,9 +58,11 @@ dependencies {
     def lottieVersion = "5.2.0"
     def nav_version = "2.5.2"
 
+    //Horizontal pager
     implementation "com.google.accompanist:accompanist-systemuicontroller:0.17.0"
     implementation "com.google.accompanist:accompanist-pager:0.26.5-rc"
     implementation "com.google.accompanist:accompanist-pager-indicators:0.26.5-rc"
+
     implementation "com.airbnb.android:lottie-compose:$lottieVersion"
 
     implementation("io.coil-kt:coil-compose:2.2.2")

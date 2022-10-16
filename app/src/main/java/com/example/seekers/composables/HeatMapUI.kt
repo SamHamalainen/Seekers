@@ -1,7 +1,5 @@
 package com.example.seekers.composables
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -17,14 +15,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,7 +33,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.seekers.R
 import com.example.seekers.general.AvatarIcon
-import com.example.seekers.general.NavRoutes
 import com.example.seekers.general.avatarList
 import com.example.seekers.general.secondsToText
 import com.example.seekers.ui.theme.Emerald
@@ -43,34 +42,28 @@ import com.example.seekers.ui.theme.SizzlingRed
 import com.example.seekers.utils.InGameStatus
 import com.example.seekers.utils.Player
 import com.example.seekers.viewModels.HeatMapViewModel
-import com.google.maps.android.compose.MapUiSettings
 import java.util.*
 
-val uiSettings = MapUiSettings(
-    compassEnabled = true,
-    indoorLevelPickerEnabled = true,
-    mapToolbarEnabled = false,
-    myLocationButtonEnabled = false,
-    rotationGesturesEnabled = true,
-    scrollGesturesEnabled = true,
-    scrollGesturesEnabledDuringRotateOrZoom = true,
-    tiltGesturesEnabled = true,
-    zoomControlsEnabled = false,
-    zoomGesturesEnabled = true
-)
+/**
+ * HeatMapUI: Several dialogs and widgets which make up the UI of the game on top of the HeatMap
+ */
 
+// Top bar which shows the number of players still hiding, the time left and the recent news button
 @Composable
 fun GameTopBar(modifier: Modifier = Modifier, showNews: (Boolean) -> Unit, vm: HeatMapViewModel) {
     val players by vm.players.observeAsState(listOf())
     val hasNewNews by vm.hasNewNews.observeAsState(false)
-    val hidingAmount by derivedStateOf {
-        players.count { player ->
-            player.inGameStatus == InGameStatus.HIDING.ordinal
-                    || player.inGameStatus == InGameStatus.MOVING.ordinal
-                    || player.inGameStatus == InGameStatus.INVISIBLE.ordinal
-                    || player.inGameStatus == InGameStatus.DECOYED.ordinal
+    val hidingAmount by remember {
+        derivedStateOf {
+            players.count { player ->
+                player.inGameStatus == InGameStatus.HIDING.ordinal
+                        || player.inGameStatus == InGameStatus.MOVING.ordinal
+                        || player.inGameStatus == InGameStatus.INVISIBLE.ordinal
+                        || player.inGameStatus == InGameStatus.DECOYED.ordinal
+            }
         }
     }
+
     Card(
         modifier = modifier,
         backgroundColor = Emerald,
@@ -110,6 +103,7 @@ fun GameTopBar(modifier: Modifier = Modifier, showNews: (Boolean) -> Unit, vm: H
     }
 }
 
+// Dialog which shows all the players and their status
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PlayerListDialog(onDismiss: () -> Unit, players: List<Player>) {
@@ -138,6 +132,7 @@ fun PlayerListDialog(onDismiss: () -> Unit, players: List<Player>) {
     }
 }
 
+// List of players
 @Composable
 fun PlayerList(players: List<Player>) {
     LazyColumn(Modifier.fillMaxWidth()) {
@@ -147,6 +142,7 @@ fun PlayerList(players: List<Player>) {
     }
 }
 
+// Tile for each player in the PlayerList
 @Composable
 fun PlayerTile(player: Player) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
@@ -182,6 +178,7 @@ fun PlayerTile(player: Player) {
     }
 }
 
+// Indicator that shows a player's status
 @Composable
 fun StatusPill(inGameStatus: Int) {
     val status = InGameStatus.values()[inGameStatus].name.lowercase(Locale.getDefault())
@@ -199,15 +196,11 @@ fun StatusPill(inGameStatus: Int) {
     }
 }
 
-fun makeToast(context: Context, text: String) {
-    Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-}
-
+// Dialog that shows all the powers available to the current user
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PowersDialog(onDismiss: () -> Unit, vm: HeatMapViewModel, gameId: String) {
-    val context = LocalContext.current
-    val list = listOf<Power>(Power.INVISIBILITY, Power.JAMMER, Power.DECOY, Power.REVEAL)
+    val list = Power.values()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -229,6 +222,7 @@ fun PowersDialog(onDismiss: () -> Unit, vm: HeatMapViewModel, gameId: String) {
     }
 }
 
+// Button to activate a power
 @Composable
 fun PowerButton(power: Power, vm: HeatMapViewModel, gameId: String) {
     val icon = when (power.icon) {
@@ -289,6 +283,7 @@ fun PowerButton(power: Power, vm: HeatMapViewModel, gameId: String) {
     }
 }
 
+// Enum class for the powers a hiding player can use
 enum class Power(val icon: Int, val text: String, val duration: Int, val action: Int) {
     INVISIBILITY(1, "Invisibility", 30, 1),
     JAMMER(2, "Jammer", 5, 2),
@@ -296,6 +291,7 @@ enum class Power(val icon: Int, val text: String, val duration: Int, val action:
     REVEAL(4, "Reveal seekers", 5, 4)
 }
 
+// Shows the current active power and how long it is still active
 @Composable
 fun PowerActiveIndicator(modifier: Modifier = Modifier, power: Power, countdown: Int) {
     val icon = when (power.icon) {
@@ -350,6 +346,7 @@ fun PowerActiveIndicator(modifier: Modifier = Modifier, power: Power, countdown:
     }
 }
 
+// Surface which hides the HeatMap when the seekers are being jammed
 @Composable
 fun Jammer() {
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -359,9 +356,10 @@ fun Jammer() {
     }
 }
 
+// Button to show the news. Currently shows all the selfies taken with eliminated users
 @Composable
 fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boolean) {
-    Box {
+    Box(modifier = modifier) {
         IconButton(
             onClick = { onClick() },
             content = {
@@ -388,6 +386,7 @@ fun NewsButton(modifier: Modifier = Modifier, onClick: () -> Unit, hasNew: Boole
     }
 }
 
+// Shows the time left until the end of the game
 @Composable
 fun GameTimer(vm: HeatMapViewModel) {
     val countdown by vm.countdown.observeAsState()
@@ -410,6 +409,7 @@ fun GameTimer(vm: HeatMapViewModel) {
     }
 }
 
+// At the end of a game, shows the time left until showing the end game screen and allows the user to skip the wait
 @Composable
 fun EndTimerSkip(lobbyEndCountdown: Int, onClick: () -> Unit) {
     Card(

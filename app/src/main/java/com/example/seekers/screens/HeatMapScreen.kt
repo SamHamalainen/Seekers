@@ -3,80 +3,66 @@ package com.example.seekers.screens
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.CountDownTimer
-import android.util.Size
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.seekers.*
-import com.example.seekers.R
+import com.example.seekers.composables.HeatMap
 import com.example.seekers.composables.*
-import com.example.seekers.general.*
-import com.example.seekers.ui.theme.Emerald
-import com.example.seekers.ui.theme.Raisin
+import com.example.seekers.general.NavRoutes
 import com.example.seekers.utils.*
 import com.example.seekers.viewModels.HeatMapViewModel
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapType
-import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
+/**
+ * HeatMapScreen: Screen where the game happens.
+ * Contains:
+ * - a map with the playing area and heat markers where players are hiding
+ * - a bottom drawer which contains a game menu
+ * - a top bar which shows the time and participants remaining, and a news button
+ * - several dialogs for leaving the game, show players remaining, use powers, etc.
+ */
 
 @OptIn(ExperimentalMaterialApi::class)
 @SuppressLint("MissingPermission", "UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun HeatMapScreen(
     vm: HeatMapViewModel = viewModel(),
-    mapControl: Boolean,
     gameId: String,
     navController: NavHostController,
     permissionVM: PermissionsViewModel
 ) {
     val context = LocalContext.current
-    // player
-    val movingPlayers by vm.movingPlayers.observeAsState(listOf())
+    val scope = rememberCoroutineScope()
+
+    // players
     val currentSeekers by vm.currentSeekers.observeAsState(listOf())
     val players by vm.players.observeAsState()
     var playerFound: Player? by remember { mutableStateOf(null) }
-    val canSeeSeeker by vm.canSeeSeeker.observeAsState(false)
+    val isSeeker by vm.isSeeker.observeAsState()
+    val playerStatus by vm.playerStatus.observeAsState()
 
     // lobby
-    val lobby by vm.lobby.observeAsState()
     val lobbyStatus by vm.lobbyStatus.observeAsState()
 
-    // map
-    val radius by vm.radius.observeAsState()
-    var initialPosSet by remember { mutableStateOf(false) }
-    val center by vm.center.observeAsState()
+    // map & map ui
     val cameraPositionState = rememberCameraPositionState()
-    var circleCoords by remember { mutableStateOf(listOf<LatLng>()) }
+    val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
+    val snackbarHostState = remember { SnackbarHostState() }
+    var lobbyEndCountdown by remember { mutableStateOf(60) }
+    var lobbyIsOver by remember { mutableStateOf(false) }
+    val news by vm.news.observeAsState()
 
     // dialogs
     var showRadarDialog by remember { mutableStateOf(false) }
@@ -87,8 +73,6 @@ fun HeatMapScreen(
     var showPlayerList by remember { mutableStateOf(false) }
     var showSendSelfie by remember { mutableStateOf(false) }
     var showNews by remember { mutableStateOf(false) }
-    val showPowers by vm.showPowersDialog.observeAsState(false)
-    val showJammer by vm.showJammer.observeAsState(false)
 
     // permissions
     val locationAllowed by permissionVM.fineLocPerm.observeAsState(false)
@@ -97,18 +81,11 @@ fun HeatMapScreen(
     // powers
     val powerCountdown by vm.powerCountdown.observeAsState()
     val activePower by vm.activePower.observeAsState()
+    val showPowers by vm.showPowersDialog.observeAsState(false)
+    val showJammer by vm.showJammer.observeAsState(false)
 
-    // Other
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
-    val snackbarHostState = remember { SnackbarHostState() }
-    var lobbyEndCountdown by remember { mutableStateOf(60) }
-    val isSeeker by vm.isSeeker.observeAsState()
-    val playerStatus by vm.playerStatus.observeAsState()
-    val news by vm.news.observeAsState()
-    val hasNewNews by vm.hasNewNews.observeAsState(false)
+    // selfie
     var selfie: Bitmap? by remember { mutableStateOf(null) }
-    var lobbyIsOver by remember { mutableStateOf(false) }
     val selfieLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) {
             it?.let {
@@ -117,11 +94,10 @@ fun HeatMapScreen(
             }
         }
 
-    var properties: MapProperties? by remember { mutableStateOf(null) }
-
+    // Check permissions on launch, start the step counter and get all the Firebase listeners required
     LaunchedEffect(Unit) {
         permissionVM.checkAllPermissions(context)
-        vm.receiveCountdown(context)
+        vm.startStepCounter()
         launch(Dispatchers.IO) {
             vm.getPlayers(gameId)
             vm.getLobby(gameId)
@@ -129,44 +105,14 @@ fun HeatMapScreen(
         }
     }
 
-    LaunchedEffect(currentSeekers) {
-        currentSeekers?.let {
-            val activePlayers = players?.count { it.inGameStatus != InGameStatus.LEFT.ordinal }
-            if (currentSeekers.size == activePlayers && activePlayers > 1) {
-                vm.setLobbyFinished(gameId)
-                drawerState.close()
-            }
-        }
-    }
-
-    LaunchedEffect(lobbyStatus) {
-        lobbyStatus?.let {
-            when (it) {
-                LobbyStatus.ACTIVE.ordinal -> {
-                    vm.startStepCounter()
-                }
-                LobbyStatus.FINISHED.ordinal -> {
-                    vm.unregisterReceiver(context)
-                    lobbyIsOver = true
-                    object : CountDownTimer(60 * 1000, 1000) {
-                        override fun onTick(p0: Long) {
-                            lobbyEndCountdown = p0.div(1000).toInt()
-                        }
-
-                        override fun onFinish() {
-                            vm.endLobby(context = context)
-                            navController.navigate(NavRoutes.EndGame.route + "/$gameId")
-                        }
-                    }.start()
-                }
-            }
-        }
-    }
-
+    // Check the current player's status.
+    // On launch, check if the current player is a seeker, then start the game foreground service.
+    // If the player is eliminated, stop the game service, turn the player into a seeker and restart the service
+    // If the player is jammed, hide the map until the player status is seeker again.
     LaunchedEffect(playerStatus) {
         playerStatus?.let {
             if (isSeeker == null) {
-                val thisPlayerIsSeeker = (it == InGameStatus.SEEKER.ordinal)
+                val thisPlayerIsSeeker = (it == InGameStatus.SEEKER.ordinal || it == InGameStatus.JAMMED.ordinal)
                 vm.updateIsSeeker(thisPlayerIsSeeker)
                 if (it != InGameStatus.ELIMINATED.ordinal) {
                     vm.startService(
@@ -181,7 +127,7 @@ fun HeatMapScreen(
                 InGameStatus.ELIMINATED.ordinal -> {
                     showQR = false
                     vm.stopService(context)
-                    vm.setPlayerInGameStatus(
+                    vm.updateInGameStatus(
                         InGameStatus.SEEKER.ordinal,
                         gameId,
                         FirebaseHelper.uid!!
@@ -205,43 +151,38 @@ fun HeatMapScreen(
         }
     }
 
-//    if (!initialPosSet) {
-//        val density = LocalDensity.current
-//        val width = with(density) {
-//                LocalConfiguration.current.screenWidthDp.dp.toPx()
-//            }.times(0.5).toInt()
-//
-//        LaunchedEffect(center) {
-//            lobby?.let {
-//                val center = LatLng(
-//                    it.center.latitude,
-//                    it.center.longitude
-//                )
-//                val radius = it.radius
-//
-//                val mapBounds = getBounds(center, radius)
-//
-//                val minZoom = getBoundsZoomLevel(
-//                    mapBounds,
-//                    Size(width, width)
-//                ).toFloat()
-//
-//                properties = MapProperties(
-//                    mapType = MapType.SATELLITE,
-//                    isMyLocationEnabled = true,
-//                    maxZoomPreference = 17.5F,
-//                    minZoomPreference = minZoom,
-//                    latLngBoundsForCameraTarget = mapBounds
-//                )
-//                cameraPositionState.position = CameraPosition.fromLatLngZoom(center, minZoom)
-//
-//                circleCoords = getCircleCoords(center, radius)
-//
-//                initialPosSet = true
-//            }
-//        }
-//    }
+    // When the lobby status is finished, stop the game foreground service and wait 60s before navigation to the end screen
+    LaunchedEffect(lobbyStatus) {
+        lobbyStatus?.let {
+            when (it) {
+                LobbyStatus.FINISHED.ordinal -> {
+                    vm.endLobby(context)
+                    lobbyIsOver = true
+                    object : CountDownTimer(60 * 1000, 1000) {
+                        override fun onTick(p0: Long) {
+                            lobbyEndCountdown = p0.div(1000).toInt()
+                        }
+                        override fun onFinish() {
+                            navController.navigate(NavRoutes.EndGame.route + "/$gameId")
+                        }
+                    }.start()
+                }
+            }
+        }
+    }
 
+    // When the last hiding player has been found, end the game
+    LaunchedEffect(currentSeekers) {
+        currentSeekers?.let {
+            val activePlayers = players?.count { it.inGameStatus != InGameStatus.LEFT.ordinal }
+            if (currentSeekers.size == activePlayers && activePlayers > 1) {
+                vm.setLobbyFinished(gameId)
+                drawerState.close()
+            }
+        }
+    }
+
+    // Bottom drawer with game menu
     BottomDrawerView(
         vm = vm,
         drawerState = drawerState,
@@ -252,9 +193,13 @@ fun HeatMapScreen(
         showLeaveGame = { showLeaveGameDialog = true },
         showPlayerList = { showPlayerList = true }
     ) {
+
+        // Game UI with map and other widgets
         Scaffold(
             floatingActionButtonPosition = FabPosition.Center,
             isFloatingActionButtonDocked = true,
+            // During game: FAB to open the bottom drawer menu
+            // After the game, button to skip to the end screen
             floatingActionButton = {
                 if (!lobbyIsOver) {
                     BottomDrawerFAB {
@@ -262,31 +207,25 @@ fun HeatMapScreen(
                     }
                 } else {
                     EndTimerSkip(lobbyEndCountdown = lobbyEndCountdown) {
-                        vm.endLobby(context)
                         navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                     }
                 }
-            },
+            }
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+                GameTopBar(modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(12.dp)
+                    .height(44.dp)
+                    .fillMaxWidth(), showNews = { showNews = true },
+                    vm = vm
+                )
+
                 if (locationAllowed) {
+
                     HeatMap(
                         state = cameraPositionState,
-//                            center = center,
-//                            radius = radius,
-//                            properties = props,
-//                            movingPlayers = movingPlayers,
-//                            seekers = currentSeekers,
-//                            canSeeSeeker = canSeeSeeker,
-//                            circleCoords = circleCoords,
-                        vm = vm
-                    )
-
-                    GameTopBar(modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(12.dp)
-                        .height(44.dp)
-                        .fillMaxWidth(), showNews = { showNews = true },
                         vm = vm
                     )
 
@@ -388,6 +327,7 @@ fun HeatMapScreen(
                 } else {
                     Text(text = "Location permission needed")
                 }
+
                 if (activePower != null && powerCountdown != null) {
                     PowerActiveIndicator(
                         power = activePower!!,
@@ -400,11 +340,13 @@ fun HeatMapScreen(
                             .padding(horizontal = 12.dp)
                     )
                 }
+
             }
         }
     }
 
     SnackbarHost(hostState = snackbarHostState)
+
     BackHandler(enabled = true) {
         if (drawerState.isOpen) {
             scope.launch { drawerState.close() }

@@ -1,4 +1,4 @@
-package com.example.seekers
+package com.example.seekers.composables
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -11,15 +11,18 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.example.seekers.composables.uiSettings
 import com.example.seekers.general.*
-import com.example.seekers.utils.Player
 import com.example.seekers.viewModels.HeatMapViewModel
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.google.maps.android.heatmaps.HeatmapTileProvider
+
+/**
+ * HeatMap: GoogleMap with a delimited playing area, players shown as heat markers when hiding
+ * and as icons when on the move.
+ */
 
 @Composable
 fun HeatMap(
@@ -32,6 +35,8 @@ fun HeatMap(
     val movingPlayers by vm.movingPlayers.observeAsState(listOf())
     val heatPositions by vm.heatPositions.observeAsState(listOf())
     val canSeeSeeker by vm.canSeeSeeker.observeAsState(false)
+
+    // Tile provider for the heat markers
     val tileProvider by remember {
         derivedStateOf {
             var provider: HeatmapTileProvider? = null
@@ -45,6 +50,8 @@ fun HeatMap(
         }
     }
 
+    // Setting the center and radius of the playing area to display it on the GoogleMap.
+    // Defining the bounds and the MapProperties of the GoogleMap
     lobby?.let {
         val density = LocalDensity.current
         val width = with(density) {
@@ -74,6 +81,7 @@ fun HeatMap(
 
         val circleCoords = getCircleCoords(center, radius)
 
+        // Centering the map on the playing area on launch
         LaunchedEffect(Unit) {
             state.position = CameraPosition.fromLatLngZoom(center, minZoom)
         }
@@ -90,6 +98,7 @@ fun HeatMap(
                 )
             }
 
+            // Showing moving players by their avatar icon
             movingPlayers.forEach { movingPlayer ->
                 val res = avatarListWithBg[movingPlayer.avatarId]
                 val bitmap = BitmapFactory.decodeResource(context.resources, res)
@@ -108,6 +117,7 @@ fun HeatMap(
                 )
             }
 
+            // Showing seeker positions if the current player is using their reveal ability
             if (canSeeSeeker) {
                 seekers.forEach { seeker ->
                     val res = avatarListWithBg[seeker.avatarId]
@@ -128,6 +138,7 @@ fun HeatMap(
                 }
             }
 
+            // Darkened background around the playing area
             Polygon(
                 points = getCornerCoords(center, radius),
                 fillColor = Color(0x8D000000),
@@ -135,6 +146,7 @@ fun HeatMap(
                 strokeWidth = 0f,
             )
 
+            // Border around the playing area
             Circle(
                 center = center,
                 radius = radius.toDouble(),
@@ -142,6 +154,18 @@ fun HeatMap(
             )
         }
     }
-
-
 }
+
+// settings for the GoogleMap
+val uiSettings = MapUiSettings(
+    compassEnabled = true,
+    indoorLevelPickerEnabled = true,
+    mapToolbarEnabled = false,
+    myLocationButtonEnabled = false,
+    rotationGesturesEnabled = true,
+    scrollGesturesEnabled = true,
+    scrollGesturesEnabledDuringRotateOrZoom = true,
+    tiltGesturesEnabled = true,
+    zoomControlsEnabled = false,
+    zoomGesturesEnabled = true
+)
