@@ -17,27 +17,37 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * CountdownService: Foreground service that shows the countdown until a game starts as a notification.
+ * The users do not need to have the app open on their phone to see the ongoing countdown.
+ */
+
 class CountdownService: Service() {
     companion object {
 
+        // Start the foreground service with the current game's id as an intent
         fun start(context: Context, gameId: String) {
             val intent = Intent(context, CountdownService::class.java)
             intent.putExtra("gameId", gameId)
             context.startForegroundService(intent)
         }
+
+        // Stops the foreground service
         fun stop(context: Context) {
             val intent = Intent(context, CountdownService::class.java)
             context.stopService(intent)
         }
     }
 
+
     val firestore = FirebaseHelper
-    var timer: CountDownTimer? = null
-    val scope = CoroutineScope(Dispatchers.Default)
-    var mediaPlayerHidingPhaseMusic: MediaPlayer? = null
+    private var timer: CountDownTimer? = null
+    private val scope = CoroutineScope(Dispatchers.Default)
+    private var mediaPlayerHidingPhaseMusic: MediaPlayer? = null
     var mediaPlayerCountdown: MediaPlayer? = null
 
-    fun mediaPlayerHidingPhaseMusic(): MediaPlayer = MediaPlayer.create(applicationContext,
+    // Getters for the music players during countdown
+    private fun mediaPlayerHidingPhaseMusic(): MediaPlayer = MediaPlayer.create(applicationContext,
         R.raw.countdown_music
     )
     fun mediaPlayerCountdown() : MediaPlayer = MediaPlayer.create(applicationContext,
@@ -48,6 +58,7 @@ class CountdownService: Service() {
         return null
     }
 
+    // Handles the vibration of the device at the end of the countdown
     fun vibrate(milliseconds: Long) {
         val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
@@ -60,7 +71,8 @@ class CountdownService: Service() {
         vib.vibrate(VibrationEffect.createOneShot(milliseconds,255))
     }
 
-    fun getIsSeeker(gameId: String) {
+    // Determines if the current user is a seeker
+    private fun getIsSeeker(gameId: String) {
         FirebaseHelper.getPlayer(gameId, FirebaseHelper.uid!!).get()
             .addOnSuccessListener {
                 val player = it.toObject(Player::class.java)
@@ -69,7 +81,8 @@ class CountdownService: Service() {
             }
     }
 
-    fun getInitialValue(gameId: String, isSeeker: Boolean) {
+    // Gets the initial value of the countdown. If the app is restarted, retrieves the remaining countdown
+    private fun getInitialValue(gameId: String, isSeeker: Boolean) {
         FirebaseHelper.getLobby(gameId).get()
             .addOnSuccessListener {
                 val lobby = it.toObject(Lobby::class.java)
@@ -84,6 +97,8 @@ class CountdownService: Service() {
             }
     }
 
+    // Starts the countdown timer at the end of which the game starts
+    // The countdown is broadcast so that it can used in the CountdownScreen
     private fun startTimer(timeLeft: Int, gameId: String, isSeeker: Boolean) {
         mediaPlayerHidingPhaseMusic = mediaPlayerHidingPhaseMusic().apply {
             isLooping = true
@@ -133,11 +148,16 @@ class CountdownService: Service() {
                     )
                 }
                 this.cancel()
+                scope.launch {
+                    delay(1000)
+                    stop(applicationContext)
+                }
             }
         }
         timer?.start()
     }
 
+    // Broadcasting the countdown
     fun broadcastCountdown(seconds: Int) {
         val countDownIntent = Intent()
         countDownIntent.action = GameService.COUNTDOWN_TICK
@@ -145,6 +165,7 @@ class CountdownService: Service() {
         sendBroadcast(countDownIntent)
     }
 
+    // Get the intent that will be started if the user presses the foreground notification
     private fun getPendingIntent(): PendingIntent = PendingIntent.getActivity(
         applicationContext,
         0,
@@ -152,9 +173,10 @@ class CountdownService: Service() {
         PendingIntent.FLAG_IMMUTABLE
     )
 
+    // Creates the foreground notification which shows the countdown
     private fun buildMainNotification(timeLeft: Int?): Notification {
         val timeText = timeLeft?.let { secondsToText(it) } ?: "Initializing the timer"
-        return Notifications.createNotification(
+        return NotificationHelper.createNotification(
             context = applicationContext,
             title = "Seekers - Time to hide!",
             content = timeText,
@@ -162,21 +184,24 @@ class CountdownService: Service() {
         )
     }
 
+    // Updates the notification with a new countdown value
     fun updateMainNotification(timeLeft: Int) {
         with(NotificationManagerCompat.from(applicationContext)) {
             notify(GameService.MAIN_NOTIFICATION_ID, buildMainNotification(timeLeft))
         }
     }
 
+    // Starts the foreground service with it's corresponding notification and the countdown timer
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val gameId = intent?.getStringExtra("gameId")!!
-        Notifications.createNotificationChannel(context = applicationContext)
+        NotificationHelper.createNotificationChannel(context = applicationContext)
         val notification = buildMainNotification(null)
         startForeground(GameService.MAIN_NOTIFICATION_ID, notification)
         getIsSeeker(gameId)
         return START_NOT_STICKY
     }
 
+    // When the service is started, stops the music
     override fun onDestroy() {
         super.onDestroy()
         scope.launch {
@@ -186,6 +211,5 @@ class CountdownService: Service() {
         }
         mediaPlayerHidingPhaseMusic?.stop()
         mediaPlayerHidingPhaseMusic?.release()
-
     }
 }

@@ -220,7 +220,6 @@ fun MyAppNavHost(permissionVM: PermissionsViewModel = viewModel()) {
         ) {
             val gameId = it.arguments!!.getString("gameId")!!
             HeatMapScreen(
-                mapControl = true,
                 navController = navController,
                 gameId = gameId,
                 permissionVM = permissionVM

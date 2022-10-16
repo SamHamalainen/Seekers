@@ -9,9 +9,12 @@ import android.view.WindowManager
 import com.example.seekers.R
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.firebase.Timestamp
 import com.google.maps.android.ktx.utils.withSphericalOffset
 import io.github.g0dkar.qrcode.QRCode
 import java.io.ByteArrayOutputStream
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.*
 
 // Generate QRCode that will be read as a string when scanned
@@ -167,3 +170,9 @@ fun adjustContentWithKB(context: Context, isPan: Boolean = false) {
     }
 }
 
+fun timeStampToTimeString(timestamp: Timestamp): String? {
+    val localDateTime =
+        timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+    return localDateTime.format(formatter)
+}

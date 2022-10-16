@@ -11,8 +11,12 @@ import androidx.core.app.NotificationCompat
 import com.example.seekers.R
 import com.example.seekers.ui.theme.Emerald
 
-object Notifications {
-    private val CHANNEL_ID = "FOREGROUND_SERVICE"
+/**
+ * NotificationHelper: Contains the functions to create a notification and it's channel
+ */
+
+object NotificationHelper {
+    private const val CHANNEL_ID = "FOREGROUND_SERVICE"
 
     fun createNotificationChannel(
         context: Context,

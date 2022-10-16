@@ -35,8 +35,16 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.seekers.general.CustomButton
 
+/**
+ * Permissions: Contains all the utilities necessary to check that a user has granted all the permissions
+ * required in the app: 
+ * - Location: coarse, fine and background
+ * - Camera
+ * - Activity recognition
+ * - Foreground service
+ */
+
 class PermissionsViewModel : ViewModel() {
-//    val coarseLocPerm = MutableLiveData<Boolean>()
     val fineLocPerm = MutableLiveData<Boolean>()
     val backgroundLocPerm = MutableLiveData<Boolean>()
     val cameraPerm = MutableLiveData<Boolean>()
@@ -46,7 +54,6 @@ class PermissionsViewModel : ViewModel() {
 
     fun getLiveData(requiredPermission: RequiredPermission): MutableLiveData<Boolean> {
         return when (requiredPermission) {
-//            RequiredPermission.COARSE_LOCATION -> coarseLocPerm
             RequiredPermission.FINE_LOCATION -> fineLocPerm
             RequiredPermission.BACKGROUND_LOCATION -> backgroundLocPerm
             RequiredPermission.CAMERA -> cameraPerm
@@ -55,35 +62,33 @@ class PermissionsViewModel : ViewModel() {
         }
     }
 
+    // Checks all current permissions and updates the corresponding livedata
     fun checkAllPermissions(context: Context) {
         RequiredPermission.values().forEach {
             getLiveData(it).value = isPermissionGranted(context, it.value)
         }
-        showDialog.value = !allPermissionsAllowed()
-        println("showDialog: ${!allPermissionsAllowed()}")
+        showDialog.value = !allPermissionsgranted()
+        println("showDialog: ${!allPermissionsgranted()}")
     }
 
-    private fun allPermissionsAllowed(): Boolean {
+    // return true if all permissions are granted
+    private fun allPermissionsgranted(): Boolean {
         return fineLocPerm.value == true
                 && backgroundLocPerm.value == true
                 && cameraPerm.value == true
                 && activityRecPerm.value == true
                 && foregroundServPerm.value == true
-//        coarseLocPerm.value == true &&
 
     }
 
+    // shows full screen dialog if all the permissions are not granted
     fun updateShowDialog(newVal: Boolean) {
         showDialog.value = newVal
     }
 }
 
+// enum class with all the required permissions in this app
 enum class RequiredPermission(val value: String, val text: String) {
-    //    COARSE_LOCATION(
-//        Manifest.permission.ACCESS_COARSE_LOCATION,
-//        "\uD83D\uDCCD Coarse location",
-//        "to locate other players on the map"
-//    ),
     FINE_LOCATION(
         Manifest.permission.ACCESS_FINE_LOCATION,
         "\uD83D\uDCCD Fine location"
@@ -104,6 +109,8 @@ enum class RequiredPermission(val value: String, val text: String) {
     ),
 }
 
+// Get a list of all the launchers corresponding to the required permissions.
+// OnResult, they update the corresponding livedata
 @Composable
 fun getLauncherList(vm: PermissionsViewModel): MutableList<ManagedActivityResultLauncher<String, Boolean>> {
     val launcherList = mutableListOf<ManagedActivityResultLauncher<String, Boolean>>()
@@ -114,11 +121,13 @@ fun getLauncherList(vm: PermissionsViewModel): MutableList<ManagedActivityResult
     return launcherList
 }
 
+// Tile which represent a permission and its current status (accepted or not).
+// Pressing one of them will prompt the user to allow a permission if it hasn't been yet.
 @Composable
-fun PermissionTile(permission: String, isAllowed: Boolean, onClick: () -> Unit) {
+fun PermissionTile(permission: String, isGranted: Boolean, onClick: () -> Unit) {
     val iconVector =
-        if (isAllowed) Icons.Filled.CheckCircleOutline else Icons.Filled.ErrorOutline
-    val color = if (isAllowed) Color.Green else Color.Red
+        if (isGranted) Icons.Filled.CheckCircleOutline else Icons.Filled.ErrorOutline
+    val color = if (isGranted) Color.Green else Color.Red
     Column(
         Modifier
             .fillMaxWidth()
@@ -133,7 +142,7 @@ fun PermissionTile(permission: String, isAllowed: Boolean, onClick: () -> Unit) 
             Text(text = permission)
             Icon(
                 imageVector = iconVector,
-                contentDescription = "isAllowed: $isAllowed",
+                contentDescription = "isGranted: $isGranted",
                 tint = color
             )
         }
@@ -147,10 +156,10 @@ fun PermissionTile(permission: String, isAllowed: Boolean, onClick: () -> Unit) 
 
 }
 
+// Full screen dialog which prompts the user to accept all the required permissions for the app to work
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
-//    val coarseLocPerm by vm.coarseLocPerm.observeAsState()
     val fineLocPerm by vm.fineLocPerm.observeAsState()
     val backgroundLocPerm by vm.backgroundLocPerm.observeAsState()
     val cameraPerm by vm.cameraPerm.observeAsState()
@@ -158,7 +167,6 @@ fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
     val foregroundServPerm by vm.foregroundServPerm.observeAsState()
     val allPermissionsOK by remember {
         derivedStateOf {
-//            coarseLocPerm == true &&
                     fineLocPerm == true
                     && backgroundLocPerm == true
                     && cameraPerm == true
@@ -167,6 +175,7 @@ fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
         }
     }
 
+    // List of all the permission request launchers
     var permLaunchers: List<ManagedActivityResultLauncher<String, Boolean>> by remember {
         mutableStateOf(
             listOf()
@@ -176,7 +185,6 @@ fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
 
     fun getPermissionValue(requiredPermission: RequiredPermission): Boolean? {
         return when (requiredPermission) {
-//            RequiredPermission.COARSE_LOCATION -> coarseLocPerm
             RequiredPermission.FINE_LOCATION -> fineLocPerm
             RequiredPermission.BACKGROUND_LOCATION -> backgroundLocPerm
             RequiredPermission.CAMERA -> cameraPerm
@@ -230,7 +238,7 @@ fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
                         RequiredPermission.values().forEach {
                             PermissionTile(
                                 permission = it.text,
-                                isAllowed = getPermissionValue(it) == true,
+                                isGranted = getPermissionValue(it) == true,
                                 onClick = {
                                     permLaunchers[it.ordinal].launch(it.value)
                                 }
@@ -252,6 +260,7 @@ fun PermissionsDialog(onDismiss: () -> Unit, vm: PermissionsViewModel) {
     }
 }
 
+// Get a permission request launcher
 @Composable
 fun getPermissionLauncher(onResult: (Boolean) -> Unit): ManagedActivityResultLauncher<String, Boolean> {
     return rememberLauncherForActivityResult(
@@ -260,6 +269,7 @@ fun getPermissionLauncher(onResult: (Boolean) -> Unit): ManagedActivityResultLau
     )
 }
 
+// Check if a permission is currently granted
 fun isPermissionGranted(context: Context, permission: String): Boolean {
     return ContextCompat.checkSelfPermission(
         context,

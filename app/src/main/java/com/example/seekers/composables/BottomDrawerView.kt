@@ -1,10 +1,8 @@
 package com.example.seekers.composables
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,16 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.seekers.HeatMap
 import com.example.seekers.R
-import com.example.seekers.general.NavRoutes
-import com.example.seekers.general.secondsToText
 import com.example.seekers.ui.theme.Emerald
 import com.example.seekers.ui.theme.Raisin
-import com.example.seekers.utils.InGameStatus
 import com.example.seekers.viewModels.HeatMapViewModel
 import kotlinx.coroutines.launch
+
+/**
+ * BottomDrawerView: View which defines the game bottom menu and contains the game UI
+ */
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -65,6 +62,8 @@ fun BottomDrawerView(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+
+                    // Closes the bottom drawer
                     IconButton(
                         onClick = { scope.launch { drawerState.close() } },
                         content = {
@@ -80,6 +79,7 @@ fun BottomDrawerView(
                             }
                         })
                     if (isSeeker) {
+                        // Opens the radar which shows the distance to other players
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
@@ -99,6 +99,7 @@ fun BottomDrawerView(
                             },
                         )
                     } else {
+                        // Shows the different powers a hiding user can use
                         IconButton(
                             onClick = {
                                 scope.launch { drawerState.close() }
@@ -112,16 +113,16 @@ fun BottomDrawerView(
                                     Icon(
                                         modifier = Modifier.size(24.dp),
                                         painter = painterResource(id = R.drawable.magic_wand),
-                                        contentDescription = "Radar",
+                                        contentDescription = "powers",
                                         tint = Raisin
                                     )
                                 }
                             },
                             enabled = powerCountdown == 0
                         )
-
                     }
 
+                    // Shows a QR code or a QR code scanner used to eliminate a player when a seeker finds them
                     IconButton(
                         onClick = {
                             scope.launch { drawerState.close() }
@@ -153,6 +154,8 @@ fun BottomDrawerView(
                                     )
                             }
                         })
+
+                    // Shows a list of all players and their status
                     IconButton(
                         onClick = {
                             showPlayerList(true)
@@ -166,6 +169,8 @@ fun BottomDrawerView(
                                 // Text(text = "Players", color = Color.White)
                             }
                         })
+
+                    // Leaves the game
                     IconButton(
                         onClick = {
                             showLeaveGame(true)
@@ -190,6 +195,8 @@ fun BottomDrawerView(
     )
 }
 
+
+// FAB to open the bottom drawer
 @Composable
 fun BottomDrawerFAB(onClick: () -> Unit) {
     FloatingActionButton(

@@ -11,10 +11,11 @@ import com.example.seekers.utils.FirebaseHelper
 import com.example.seekers.services.GameService
 import com.example.seekers.utils.Lobby
 
+/**
+ * CountdownViewModel: Contains all the logic behind the CountdownScreen
+ */
+
 class CountdownViewModel : ViewModel() {
-    companion object {
-        const val TAG = "COUNTDOWN_VIEW_MODEL"
-    }
     val firestore = FirebaseHelper
 
     val initialValue = MutableLiveData<Int>()
@@ -25,6 +26,7 @@ class CountdownViewModel : ViewModel() {
         countdown.value = seconds
     }
 
+    // Get the time left before the start of a game, in case the user restarted the app
     fun getInitialValue(gameId: String) {
         firestore.getLobby(gameId).get()
             .addOnSuccessListener {
@@ -37,33 +39,21 @@ class CountdownViewModel : ViewModel() {
             }
     }
 
-//    fun updateLobby(changeMap: Map<String, Any>, gameId: String) =
-//        firestore.updateLobby(changeMap = changeMap, gameId = gameId)
-
-    //    fun getInitialValue(gameId: String) {
-//        firestore.getLobby(gameId).get()
-//            .addOnSuccessListener {
-//                val lobby = it.toObject(Lobby::class.java)
-//                lobby ?: return@addOnSuccessListener
-//                val start = lobby.startTime.toDate().time / 1000
-//                val countdownVal = lobby.countdown
-//                val now = Timestamp.now().toDate().time / 1000
-//                val remainingCountdown = start + countdownVal - now + 2
-//                println("remaining $remainingCountdown")
-//                initialValue.postValue(remainingCountdown.toInt())
-//            }
-//    }
+    // Starts the foreground service which shows the countdown in a notification that the user can see
+    // even if the app is in the background, that service also provides the countdown via broadcasting
     fun startService(context: Context, gameId: String) {
         CountdownService.start(context, gameId)
         receiveCountdown(context)
     }
 
+    // Stops the foreground service
     fun stopService(context: Context) {
         CountdownService.stop(context)
         unregisterReceiver(context)
     }
 
-    fun receiveCountdown(context: Context) {
+    // Receives the current countdown value from the foreground service via broadcast
+    private fun receiveCountdown(context: Context) {
         val countdownFilter = IntentFilter()
         countdownFilter.addAction(GameService.COUNTDOWN_TICK)
         countdownReceiver = object : BroadcastReceiver() {
@@ -75,6 +65,7 @@ class CountdownViewModel : ViewModel() {
         context.registerReceiver(countdownReceiver, countdownFilter)
     }
 
+    // Stops receiving countdown from foreground service
     private fun unregisterReceiver(context: Context) {
         context.unregisterReceiver(countdownReceiver)
     }

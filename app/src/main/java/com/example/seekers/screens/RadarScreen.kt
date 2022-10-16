@@ -38,6 +38,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * RadarScreen: Allows a seeker to know their distance to nearby players
+ */
+
 @Composable
 fun RadarScreen(
     vm: RadarViewModel = viewModel(),
@@ -68,7 +72,7 @@ fun RadarScreen(
         if (scanning == ScanningStatus.SCANNING.value) {
             ScanningLottie()
         } else {
-            FoundPlayerList(playersAndDistance = playersInGame, vm = vm, gameId = gameId)
+            FoundPlayerList(playersAndDistance = playersInGame)
         }
         CustomButton(text = "Scan", modifier = Modifier.padding(22.dp)) {
             vm.updateScanStatus(ScanningStatus.SCANNING.value)
@@ -91,17 +95,17 @@ enum class ScanningStatus(val value: Int) {
     SCANNING_STOPPED(2)
 }
 
+// Scanning animation
 @Composable
 fun ScanningLottie() {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.scanning_nearby))
     LottieAnimation(composition)
 }
 
+// List of all scanned players
 @Composable
 fun FoundPlayerList(
-    playersAndDistance: List<Pair<Player, Float>>,
-    vm: RadarViewModel,
-    gameId: String
+    playersAndDistance: List<Pair<Player, Float>>
 ) {
     val height = LocalConfiguration.current.screenHeightDp * 0.5
 
@@ -118,6 +122,7 @@ fun FoundPlayerList(
     }
 }
 
+// Item of FoundPlayerList which displays the avatar, the nickname and distance to a player
 @Composable
 fun FoundPlayerCard(
     player: Player,
@@ -125,7 +130,7 @@ fun FoundPlayerCard(
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
 
-    val avatarID = when (player.avatarId) {
+    when (player.avatarId) {
         0 -> R.drawable.bee
         1 -> R.drawable.chameleon
         2 -> R.drawable.chick
@@ -146,6 +151,7 @@ fun FoundPlayerCard(
         3 -> Emerald
         else -> Color.White
     }
+
     Column(Modifier.fillMaxWidth()) {
         Card(modifier = Modifier
             .fillMaxWidth()
@@ -177,41 +183,4 @@ fun FoundPlayerCard(
             }
         }
     }
-    /*
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        elevation = 10.dp,
-        backgroundColor = backgroundColor
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Card(
-                shape = CircleShape,
-                border = BorderStroke(2.dp, Color.Black),
-                backgroundColor = avatarBackground,
-                modifier = Modifier
-                    .padding(10.dp)
-                    .align(Alignment.CenterStart)
-            ) {
-                Image(
-                    painter = painterResource(id = avatarID),
-                    contentDescription = "avatar",
-                    modifier = Modifier
-                        .size(50.dp)
-                        .padding(10.dp)
-                )
-            }
-            Text(
-                text = player.nickname,
-                modifier = Modifier
-                    .align(Alignment.Center)
-            )
-            Text(
-                text = "${distance.toInt()} m",
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp)
-            )
-        }
-    } */
 }

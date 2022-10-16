@@ -21,6 +21,11 @@ import androidx.navigation.NavHostController
 import com.example.seekers.general.NavRoutes
 import com.example.seekers.viewModels.CountdownViewModel
 
+/**
+ * CountdownScreen: Shows the time left until the game starts, which is received from a broadcast
+ * emitted by a foreground service.
+ */
+
 @Composable
 fun CountdownScreen(
     gameId: String,
@@ -31,11 +36,14 @@ fun CountdownScreen(
     val countdown by vm.countdown.observeAsState()
     val context = LocalContext.current
 
+    // Starts the foreground service that provides the countdown,
+    // even when the app is in the background, as a notification
     LaunchedEffect(Unit) {
         vm.startService(context, gameId)
         vm.getInitialValue(gameId)
     }
 
+    // Stops the service and starts the game when the countdown reaches 0
     LaunchedEffect(countdown) {
         countdown?.let {
             if (it == 0) {
@@ -45,6 +53,7 @@ fun CountdownScreen(
         }
     }
 
+    // Shows the time left
     initialValue?.let { initial ->
         countdown?.let { cd ->
             Box(
@@ -61,6 +70,7 @@ fun CountdownScreen(
 
 }
 
+// Shows the time left as a digital clock surrounded with a circular progress bar
 @Composable
 fun CountdownTimerUI(countdown: Int, initialTime: Int) {
     val floatLeft = if (countdown == 0) 0f else (countdown.toFloat() / initialTime)
@@ -95,6 +105,7 @@ fun CountdownTimerUI(countdown: Int, initialTime: Int) {
     }
 }
 
+// converts seconds to a digital clock format
 fun convertToClock(seconds: Int): String {
     val minutes = (seconds / 60)
     val minutesString = if (minutes < 10) "0$minutes" else minutes.toString()

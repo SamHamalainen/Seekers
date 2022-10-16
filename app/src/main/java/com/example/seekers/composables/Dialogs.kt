@@ -30,32 +30,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.seekers.utils.FirebaseHelper
-import com.example.seekers.utils.News
-import com.example.seekers.utils.Player
 import com.example.seekers.R
 import com.example.seekers.general.*
 import com.example.seekers.screens.DefineAreaButton
 import com.example.seekers.screens.RadarScreen
 import com.example.seekers.ui.theme.Powder
 import com.example.seekers.ui.theme.SizzlingRed
+import com.example.seekers.utils.FirebaseHelper
+import com.example.seekers.utils.News
+import com.example.seekers.utils.Player
 import com.example.seekers.viewModels.LobbyCreationScreenViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
-// MAP
-//region CONTAINS: RadarDialog
+/**
+ * Dialogs: Contains all the dialogs used in the app
+ */
+
+// Allows a seeker to scan and find out their proximity to nearby players
 @Composable
 fun RadarDialog(
     gameId: String,
@@ -72,9 +72,8 @@ fun RadarDialog(
         }
     }
 }
-//endregion
-//region CONTAINS: ShowMyQRDialog and QRScannerDialog
 
+// Show a QR code corresponding to the current user id. Used when a player is found to get them eliminated
 @Composable
 fun ShowMyQRDialog(onDismiss: () -> Unit) {
     val playerId = FirebaseHelper.uid!!
@@ -91,6 +90,7 @@ fun ShowMyQRDialog(onDismiss: () -> Unit) {
     }
 }
 
+// Used to scan a hiding player's QR code and eliminated them.
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun QRScannerDialog(onDismiss: () -> Unit, onScanned: (String) -> Unit) {
@@ -108,8 +108,7 @@ fun QRScannerDialog(onDismiss: () -> Unit, onScanned: (String) -> Unit) {
     }
 }
 
-//endregion
-//region CONTAINS: PlayerFoundDialog and SendSelfieDialog
+// After a seeker eliminates a player by scanning their QR code, they can choose to take a selfie with them or not.
 @Composable
 fun PlayerFoundDialog(playerFound: Player?, onCancel: () -> Unit, onTakePic: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
@@ -133,6 +132,7 @@ fun PlayerFoundDialog(playerFound: Player?, onCancel: () -> Unit, onTakePic: () 
     }
 }
 
+// Shows a selfie taken and gives options to cancel, take a new picture or send the current one.
 @Composable
 fun SendSelfieDialog(
     selfie: Bitmap,
@@ -177,9 +177,8 @@ fun SendSelfieDialog(
     }
 }
 
-//endregion
-//region CONTAINS: NewsDialog / NewsItem / timeStampToString
-
+// Shows all the news which inform the players of the players that were found already.
+// Shows their selfies if they are available.
 @Composable
 fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -209,6 +208,7 @@ fun NewsDialog(newsList: List<News>, gameId: String, onDismiss: () -> Unit) {
     }
 }
 
+// Item for the NewsDialog
 @Composable
 fun NewsItem(news: News, gameId: String) {
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
@@ -261,17 +261,7 @@ fun NewsItem(news: News, gameId: String) {
     }
 }
 
-fun timeStampToTimeString(timestamp: Timestamp): String? {
-    val localDateTime =
-        timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-    val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    return localDateTime.format(formatter)
-}
-
-//endregion d
-
-// LOBBY
-//region CONTAINS: EditRulesDialog / ShowRules / EditRulesForm
+// Allows lobby creator to change the rules of the lobby after it's creation.
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EditRulesDialog(
@@ -359,18 +349,7 @@ fun EditRulesDialog(
     }
 }
 
-@Composable
-fun ShowRules(vm: LobbyCreationScreenViewModel) {
-    val lobby by vm.lobby.observeAsState()
-
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(text = "Maximum amount of players: ${lobby?.maxPlayers}")
-        Text(text = "Time limit: ${lobby?.timeLimit} minutes")
-        Text(text = "Play area radius: ${lobby?.radius} meters")
-        Text(text = "Time to hide: ${lobby?.countdown} seconds")
-    }
-}
-
+// Form to edit the rules of a lobby. Part of the EditRulesDialog
 @Composable
 fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
     val maxPlayers by vm.maxPlayers.observeAsState()
@@ -397,7 +376,7 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
 
     if (!showMap) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column() {
+            Column {
                 Input(
                     title = stringResource(id = R.string.max_players),
                     value = maxPlayers?.toString() ?: "",
@@ -409,7 +388,7 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
                     modifier = Modifier.padding(top = 5.dp)
                 )
             }
-            Column() {
+            Column {
                 Input(
                     title = stringResource(id = R.string.time_limit),
                     value = timeLimit?.toString() ?: "",
@@ -421,7 +400,7 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
                     modifier = Modifier.padding(top = 5.dp)
                 )
             }
-            Column() {
+            Column {
                 Input(
                     title = stringResource(id = R.string.countdown),
                     value = countdown?.toString() ?: "",
@@ -462,8 +441,21 @@ fun EditRulesForm(vm: LobbyCreationScreenViewModel) {
         }
     }
 }
-//endregion
-//region CONTAINS: LeaveGameDialog and DismissLobbyDialog
+
+// Shows the rules of the lobby to players who joined it
+@Composable
+fun ShowRules(vm: LobbyCreationScreenViewModel) {
+    val lobby by vm.lobby.observeAsState()
+
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(text = "Maximum amount of players: ${lobby?.maxPlayers}")
+        Text(text = "Time limit: ${lobby?.timeLimit} minutes")
+        Text(text = "Play area radius: ${lobby?.radius} meters")
+        Text(text = "Time to hide: ${lobby?.countdown} seconds")
+    }
+}
+
+// When a player is trying to leave a lobby, asks for a confirmation before doing so.
 @Composable
 fun LeaveGameDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
@@ -489,6 +481,7 @@ fun LeaveGameDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
+// When a lobby creator wants to dismiss a lobby, asks for confirmation before doing so
 @Composable
 fun DismissLobbyDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
@@ -513,8 +506,8 @@ fun DismissLobbyDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
         }
     )
 }
-//endregion
-//region CONTAINS: QRDialog
+
+// Shows the current lobby's QR code so that players can join the lobby by scanning the code
 @Composable
 fun QRDialog(
     bitmap: Bitmap,
@@ -534,10 +527,8 @@ fun QRDialog(
         }
     }
 }
-//endregion
 
-// StartGameScreen
-//region CONTAINS: LogOutDialog
+// Asks for confirmation before logging out
 @Composable
 fun LogOutDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
@@ -562,10 +553,9 @@ fun LogOutDialog(onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
         }
     )
 }
-//endregion
-//region CONTAINS: TutorialDialog / PagerSampleItemText / PagerSampleItem
 
-@OptIn(ExperimentalPagerApi::class, ExperimentalComposeUiApi::class)
+// Contains the tutorial that explains how the app works
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalPagerApi::class)
 @Composable
 fun TutorialDialog(onDismiss: () -> Unit) {
     Dialog(
@@ -806,4 +796,3 @@ internal fun PagerSampleItem(
         }
     }
 }
-//endregion

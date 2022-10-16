@@ -18,6 +18,10 @@ import com.example.seekers.viewModels.LobbyCreationScreenViewModel
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
 
+/**
+ * AreaSelectionMap: GoogleMap for selecting the playing area during the creation of a lobby.
+ */
+
 @SuppressLint("MissingPermission")
 @Composable
 fun AreaSelectionMap(
@@ -26,6 +30,7 @@ fun AreaSelectionMap(
     settings: MapUiSettings,
     state: CameraPositionState
 ) {
+    // Radius shown as a circle on the map
     val radius by vm.radius.observeAsState(50)
     Box(
         Modifier.fillMaxSize()
@@ -39,6 +44,7 @@ fun AreaSelectionMap(
                 state.position.target.latitude,
                 state.position.target.longitude
             )
+            // Circle that represents the playing area
             Circle(
                 center = center,
                 radius = radius.toDouble(),
@@ -55,6 +61,8 @@ fun AreaSelectionMap(
             color = SizzlingRed,
             fontWeight = FontWeight.Bold
         )
+
+        // Button to set the center coordinate of the playing area and its radius
         Column(Modifier.align(Alignment.BottomCenter)) {
             CustomButton(
                 modifier = Modifier.width(150.dp),
@@ -70,6 +78,8 @@ fun AreaSelectionMap(
             }
             Spacer(Modifier.height(15.dp))
         }
+
+        // Slider to change the radius of the playing area in meters
         Row(Modifier.align(Alignment.CenterEnd)) {
             VerticalSlider(
                 value = radius.toFloat(),
