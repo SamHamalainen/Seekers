@@ -62,6 +62,7 @@ fun HeatMapScreen(
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
     var lobbyEndCountdown by remember { mutableStateOf(60) }
+    var lobbyEndTimer by remember { mutableStateOf<CountDownTimer?>(null) }
     var lobbyIsOver by remember { mutableStateOf(false) }
     val news by vm.news.observeAsState()
 
@@ -160,7 +161,7 @@ fun HeatMapScreen(
                 LobbyStatus.FINISHED.ordinal -> {
                     vm.endLobby(context)
                     lobbyIsOver = true
-                    object : CountDownTimer(60 * 1000, 1000) {
+                    lobbyEndTimer = object : CountDownTimer(60 * 1000, 1000) {
                         override fun onTick(p0: Long) {
                             lobbyEndCountdown = p0.div(1000).toInt()
                         }
@@ -210,6 +211,7 @@ fun HeatMapScreen(
                     }
                 } else {
                     EndTimerSkip(lobbyEndCountdown = lobbyEndCountdown) {
+                        lobbyEndTimer?.cancel()
                         navController.navigate(NavRoutes.EndGame.route + "/$gameId")
                     }
                 }
