@@ -1,4 +1,4 @@
-![seekers_launcher](https://user-images.githubusercontent.com/82511722/196115483-9b52f90d-a047-42b1-b050-799384bc974d.png)
+![image](https://user-images.githubusercontent.com/82511722/196117427-4dceed2d-ed0d-423c-9dd1-ae97ca8ed224.png)
 
 # Seekers ![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
 
@@ -13,7 +13,7 @@
 * [License](#license)
 
 ## Introduction
-Seekers is an advanced version of the traditional game of Hide and Seek, enhanced with Android and a plethora of features that will make the game more
+Seekers is an advanced version of the traditional game of Hide and Seek, enhanced with Android and a bunch of features that will make the game more
 engaging, fun and difficult. While the idea is still beautifully simple at its core, with the help of technology and mobile devices, 
 Seekers allows for an experience that will revitalize the spirit of Hide and Seek.
 
