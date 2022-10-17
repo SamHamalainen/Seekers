@@ -50,10 +50,10 @@ Seekers require the following permissions:
 - Foreground Service
 
 ## Screenshots
-![image](https://user-images.githubusercontent.com/82511722/196119030-fe21539b-dd06-42ba-9764-df62eaff0e51.png) ![image](https://user-images.githubusercontent.com/82511722/196119477-44a8256f-a9c9-4e94-8a74-c5ed3b258533.png) ![image](https://user-images.githubusercontent.com/82511722/196119502-18772fbd-8d9a-4e9d-8d84-03c8f53a7982.png) ![image](https://user-images.githubusercontent.com/82511722/196119527-bf247bfd-890b-407f-8bda-7bde88a80f78.png)
+![image](https://user-images.githubusercontent.com/82511722/196120723-58930516-6aa8-46c8-ad26-0d71a6411602.png) ![image](https://user-images.githubusercontent.com/82511722/196120762-7f6dadf1-d310-469f-a05b-444d122d254b.png) ![image](https://user-images.githubusercontent.com/82511722/196120795-b3e6b9c3-04fc-47c5-9a99-e3602a35dd86.png) ![image](https://user-images.githubusercontent.com/82511722/196120816-08852dd5-2ffa-40a7-adb0-ea452513d70b.png)
 
 ## Set up
-- [Download]() the APK on your Android device
+- [Download](https://drive.google.com/file/d/110GpK3ikiMqCWDousuMHYbwai2a7xvYQ/view?usp=sharing) the APK on your Android device
 
 ## Contributors
 - [Sam Hämäläinen](https://github.com/SamHamalainen)
