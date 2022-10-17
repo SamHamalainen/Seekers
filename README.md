@@ -1,6 +1,6 @@
 ![image](https://user-images.githubusercontent.com/82511722/196117427-4dceed2d-ed0d-423c-9dd1-ae97ca8ed224.png)
 
-# Seekers ![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
+# Seekers 
 
 ## Table of Contents
 * [Introduction](#introduction)
@@ -50,11 +50,10 @@ Seekers require the following permissions:
 - Foreground Service
 
 ## Screenshots
-insert some screenshots
+![image](https://user-images.githubusercontent.com/82511722/196119030-fe21539b-dd06-42ba-9764-df62eaff0e51.png) ![image](https://user-images.githubusercontent.com/82511722/196119477-44a8256f-a9c9-4e94-8a74-c5ed3b258533.png) ![image](https://user-images.githubusercontent.com/82511722/196119502-18772fbd-8d9a-4e9d-8d84-03c8f53a7982.png) ![image](https://user-images.githubusercontent.com/82511722/196119527-bf247bfd-890b-407f-8bda-7bde88a80f78.png)
 
 ## Set up
 - [Download]() the APK on your Android device
-- Or clone the repo, open the project in Android Studio and hit "Run".
 
 ## Contributors
 - [Sam Hämäläinen](https://github.com/SamHamalainen)
