@@ -54,6 +54,7 @@ Seekers require the following permissions:
 
 ## Set up
 - [Download](https://drive.google.com/file/d/110GpK3ikiMqCWDousuMHYbwai2a7xvYQ/view?usp=sharing) the APK on your Android device
+- Install it and you're ready to go!
 
 ## Contributors
 - [Sam Hämäläinen](https://github.com/SamHamalainen)
